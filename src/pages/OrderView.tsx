@@ -1,0 +1,442 @@
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import api from "@/lib/api";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import {
+  ArrowLeft,
+  Clock,
+  DollarSign,
+  FileText,
+  MessageSquare,
+  Calendar,
+  User,
+  Upload,
+  Download,
+  CheckCircle2,
+  Loader2
+} from "lucide-react";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import { StatusBadge } from "@/components/StatusBadge";
+import { useFileViewer } from "@/hooks/useFileViewer";
+
+interface OrderFile {
+  id: string;
+  url: string;
+  name: string;
+  uploadedAt?: string;
+}
+
+export default function OrderView() {
+  const { orderId } = useParams();
+  const navigate = useNavigate();
+
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { previewFile, openPreview, closePreview, downloadFile } = useFileViewer();
+
+  // -------------------------------
+  // FETCH ORDER FROM API
+  // -------------------------------
+  const fetchOrder = async () => {
+    try {
+      setLoading(true);
+
+      const res = await api.get(`/orders/${orderId}`);
+
+      // Backend returns: success_response(serialize_order(order))
+      // so the payload is at ROOT LEVEL except { success: true }
+      const data = res.data;
+
+      console.log(data);
+
+      if (!data || !data.id) {
+        throw new Error("Malformed response");
+      }
+
+      // Normalize files for UI display
+      const parsedFiles: OrderFile[] = (data.files || []).map((url: string, idx: number) => ({
+        id: String(idx),
+        url,
+        name: url.split("/").pop() || "file",
+        uploadedAt: undefined
+      }));
+
+      setOrder({
+        ...data,
+        files: parsedFiles,
+        requirements: Array.isArray(data.requirements)
+          ? data.requirements
+          : data.requirements
+            ? [data.requirements]
+            : [],
+        description: data.description || "",
+      });
+
+
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.error?.message || "Failed to load order");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrder();
+  }, [orderId]);
+
+  // -------------------------------
+  // HELPER: milestone color mapping
+  // -------------------------------
+  const getMilestoneStatus = (status: string) => {
+    switch (status) {
+      case "completed":
+        return { color: "text-green-600", icon: <CheckCircle2 className="h-5 w-5" /> };
+      case "in-progress":
+        return { color: "text-yellow-500", icon: <Clock className="h-5 w-5" /> };
+      default:
+        return { color: "text-muted-foreground", icon: <Clock className="h-5 w-5 opacity-50" /> };
+    }
+  };
+
+  // -------------------------------
+  // LOADING / ERROR STATES
+  // -------------------------------
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="space-y-3">
+        <Button variant="ghost" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground">{error || "Order not found"}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // -----------------------------------------
+  // RENDER REAL ORDER DETAILS FROM API
+  // -----------------------------------------
+  return (
+    <div className="space-y-3">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <Button variant="ghost" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => navigate(`/writer/chats?orderId=${order.id}`)}
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Chat with Client
+          </Button>
+
+          <Button variant="outline">
+            <Upload className="h-4 w-4 mr-2" />
+            Upload File
+          </Button>
+        </div>
+      </div>
+
+      {/* Order Header */}
+      {/*<Card>
+        <CardHeader>*/}
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <CardTitle className="text-2xl">{order.title}</CardTitle>
+                <Badge variant={order.status === "in_progress" ? "default" : "outline"}>
+                  {order.status}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground">{order.id}</p>
+            </div>
+
+            <div className="flex flex-col items-start lg:items-end gap-2">
+              <div className="flex items-center text-3xl font-bold text-primary mb-1">
+                <DollarSign className="h-6 w-6" />
+                {order.budget}
+              </div>
+              <Badge variant="outline">{order.subject}</Badge>
+            </div>
+          </div>
+        {/*</CardHeader>
+      </Card>*/}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* MAIN CONTENT */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardContent className="p-6">
+              <Tabs defaultValue="overview">
+                <TabsList className="w-full justify-start">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  {/*<TabsTrigger value="milestones">Milestones</TabsTrigger>*/}
+                  <TabsTrigger value="files">Files ({order.files.length})</TabsTrigger>
+                </TabsList>
+
+                {/* OVERVIEW TAB */}
+                <TabsContent value="overview" className="space-y-6 mt-6">
+                  <div>
+                    <h3 className="font-semibold mb-2">Description</h3>
+                    <p className="text-muted-foreground">{order.description}</p>
+                  </div>
+
+                  {/*<Separator />*/}
+
+                  {/*<div>
+                    <h3 className="font-semibold mb-3">Requirements</h3>
+                    <ul className="space-y-2">
+                      {Array.isArray(order.requirements) && order.requirements.length > 0 ? (
+                        order.requirements.map((req, index) => (
+                          <li key={index} className="flex items-start">
+                            <CheckCircle2 className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                            <span className="text-muted-foreground">{req}</span>
+                          </li>
+                        ))
+                      ) : (
+                        <p className="text-muted-foreground">No requirements provided.</p>
+                      )}
+                    </ul>
+                  </div>*/}
+                </TabsContent>
+
+                {/* MILESTONES TAB (optional — backend does not yet provide) */}
+                <TabsContent value="milestones" className="mt-6">
+                  <p className="text-muted-foreground">Milestones feature coming soon.</p>
+                </TabsContent>
+
+                {/* FILES TAB */}
+                <TabsContent value="files" className="mt-6">
+                  {order.files.length > 0 ? (
+                    <div className="space-y-3">
+                      {order.files.map((file: OrderFile) => (
+                        <div 
+                          key={file.id}
+                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
+                        >
+                          {/*<div className="flex items-center space-x-3">
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">{file.name}</p>
+                            </div>
+                          </div>*/}
+                          <div
+                            onClick={() => openPreview(file.url, file.name)}
+                            className="cursor-pointer flex items-center space-x-3 hover:bg-accent p-4 rounded-lg transition"
+                          >
+                            <FileText className="h-5 w-5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium truncate max-w-[120px] sm:max-w-[180px] md:max-w-[250px]">
+                                {file.name}
+                              </p>
+                            </div>
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => downloadFile(file.url, file.name)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground">No files uploaded yet</p>
+                      <Button variant="outline" className="mt-4">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload First File
+                      </Button>
+                    </div>
+                  )}
+                </TabsContent>
+
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* SIDEBAR (Client, Type, Dates) */}
+        <div className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Details</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-4">
+              {/*<div className="flex items-center text-sm">
+                <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Client</p>
+                  <p className="text-muted-foreground">{order.client_id}</p>
+                </div>
+              </div>*/}
+
+              <div className="flex items-center text-sm">
+                <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Type</p>
+                  <p className="text-muted-foreground">
+                    {order.type} • {order.pages} pages
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center text-sm">
+                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Created</p>
+                  <p className="text-muted-foreground">
+                    {new Date(order.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center text-sm">
+                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Deadline</p>
+                  <p className="text-muted-foreground">
+                    {order.deadline 
+                      ? new Date(order.deadline).toLocaleString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button 
+                className="w-full" 
+                variant="outline"
+                onClick={() => navigate(`/writer/chats?orderId=${order.id}`)}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Message Client
+              </Button>
+
+              <Button className="w-full" variant="outline">
+                <Upload className="h-4 w-4 mr-2" />
+                Submit Work
+              </Button>
+
+              <Button className="w-full" variant="outline">
+                Request Revision
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+      </div>
+      {/* File Preview Dialog */}
+      <Dialog open={!!previewFile} onOpenChange={closePreview}>
+        <DialogContent
+          forceMount
+          className="z-50 m-0 p-0 gap-0 w-full h-full max-w-none bg-background border-none rounded-none overflow-hidden flex flex-col overflow-y-auto"
+        >
+          <DialogHeader className="flex items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 py-1 shrink-0">
+            <DialogTitle className="text-lg font-semibold">
+              {previewFile?.name || "Preview"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 flex items-center justify-center bg-muted/10 relative">
+            
+            {previewFile?.type === "loading" && (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Loading file...</p>
+              </div>
+            )}
+
+            {previewFile?.type === "pdf" && previewFile.url && (
+              <iframe
+                src={`${previewFile.url}#toolbar=0`}
+                className="w-full h-full border-0 bg-white"
+                title={previewFile.name}
+              />
+            )}
+
+            {previewFile?.type === "image" && previewFile.url && (
+              <img
+                src={previewFile.url}
+                alt={previewFile.name}
+                className="max-w-full max-h-full object-contain"
+              />
+            )}
+
+            {(previewFile?.type === "document" || previewFile?.type === "other") &&
+              previewFile.rawUrl && (
+                <div className="text-center space-y-3">
+                  <p className="text-muted-foreground">
+                    Preview unavailable for this file type.
+                  </p>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      downloadFile(
+                        previewFile.rawUrl,
+                        previewFile.rawUrl.split("/").pop() || previewFile.name
+                      )
+                    }
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download to View
+                  </Button>
+                </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
