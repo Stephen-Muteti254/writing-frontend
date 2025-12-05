@@ -105,13 +105,15 @@ export default function PlaceBid() {
       };
 
       const res = await api.post(`/orders/${orderId}/bids`, payload);
+      const bidData = res.data.data || res.data;
 
       toast({
         title: "Bid Submitted Successfully!",
         description: "The client will review your bid shortly.",
       });
 
-      navigate("/writer/my-bids");
+      const chatParam = bidData.chat_id ? `?chat=${bidData.chat_id}` : "";
+      navigate(`/writer/bids/${bidData.id}${chatParam}`);
     } catch (error: any) {
       console.error(error);
       toast({
@@ -272,6 +274,7 @@ export default function PlaceBid() {
                     type="submit"
                     className="flex-1"
                     disabled={isSubmitting}
+                    variant="outline"
                   >
                     {isSubmitting ? (
                       <>

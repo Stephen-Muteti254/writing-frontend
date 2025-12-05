@@ -35,6 +35,7 @@ interface OrdersTableProps {
 }
 
 export function OrdersTable({ orders }: OrdersTableProps) {
+  console.log(orders);
   const navigate = useNavigate();
 
   const getStatusBadge = (status: string) => {
@@ -126,9 +127,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                   size="sm"
                   variant="outline"
                   className="rounded-none border-0 shadow-none"
-                  onClick={() =>
-                    navigate(`/writer/chats?orderId=${order.id}`)
-                  }
+                  onClick={() => navigate(`/writer/chats?order=${order.id}&client=${order.client.id}`)}
                 >
                   <MessageSquare className="h-4 w-4 mr-1" />
                 </Button>

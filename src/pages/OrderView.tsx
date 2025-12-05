@@ -5,8 +5,8 @@ import api from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/hooks/use-toast";
 
 import {
   ArrowLeft,
@@ -15,8 +15,6 @@ import {
   FileText,
   MessageSquare,
   Calendar,
-  User,
-  Upload,
   Download,
   CheckCircle2,
   Loader2
@@ -29,8 +27,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { StatusBadge } from "@/components/StatusBadge";
 import { useFileViewer } from "@/hooks/useFileViewer";
+import { FileUploadSection, UploadFile } from "@/components/FileUploadSection";
 
 interface OrderFile {
   id: string;
@@ -46,19 +44,14 @@ export default function OrderView() {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const { previewFile, openPreview, closePreview, downloadFile } = useFileViewer();
 
-  // -------------------------------
-  // FETCH ORDER FROM API
-  // -------------------------------
   const fetchOrder = async () => {
     try {
       setLoading(true);
-
       const res = await api.get(`/orders/${orderId}`);
-
-      // Backend returns: success_response(serialize_order(order))
-      // so the payload is at ROOT LEVEL except { success: true }
       const data = res.data;
 
       console.log(data);
@@ -67,7 +60,6 @@ export default function OrderView() {
         throw new Error("Malformed response");
       }
 
-      // Normalize files for UI display
       const parsedFiles: OrderFile[] = (data.files || []).map((url: string, idx: number) => ({
         id: String(idx),
         url,
@@ -85,8 +77,6 @@ export default function OrderView() {
             : [],
         description: data.description || "",
       });
-
-
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.error?.message || "Failed to load order");
@@ -99,9 +89,43 @@ export default function OrderView() {
     fetchOrder();
   }, [orderId]);
 
-  // -------------------------------
-  // HELPER: milestone color mapping
-  // -------------------------------
+  const handleFileUpload = async () => {
+    if (uploadFiles.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      
+      uploadFiles.forEach((uploadFile, index) => {
+        formData.append(`files`, uploadFile.file);
+        formData.append(`file_types`, uploadFile.type);
+      });
+
+      await api.post(`/orders/${orderId}/files`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      toast({
+        title: "Files uploaded",
+        description: `Successfully uploaded ${uploadFiles.length} file(s)`,
+      });
+
+      setUploadFiles([]);
+      fetchOrder();
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Upload failed",
+        description: err.response?.data?.error?.message || "Failed to upload files",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const getMilestoneStatus = (status: string) => {
     switch (status) {
       case "completed":
@@ -113,9 +137,6 @@ export default function OrderView() {
     }
   };
 
-  // -------------------------------
-  // LOADING / ERROR STATES
-  // -------------------------------
   if (loading) {
     return (
       <div className="p-6 flex justify-center">
@@ -140,11 +161,8 @@ export default function OrderView() {
     );
   }
 
-  // -----------------------------------------
-  // RENDER REAL ORDER DETAILS FROM API
-  // -----------------------------------------
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <Button variant="ghost" onClick={() => navigate(-1)}>
@@ -152,49 +170,37 @@ export default function OrderView() {
           Back
         </Button>
 
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            variant="outline"
-            onClick={() => navigate(`/writer/chats?orderId=${order.id}`)}
-          >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Chat with Client
-          </Button>
-
-          <Button variant="outline">
-            <Upload className="h-4 w-4 mr-2" />
-            Upload File
-          </Button>
-        </div>
+        <Button 
+          variant="outline"
+          onClick={() => navigate(`/writer/chats?order=${order.id}&client=${order.client_id}`)}
+        >
+          <MessageSquare className="h-4 w-4 mr-2" />
+          Message Client
+        </Button>
       </div>
 
       {/* Order Header */}
-      {/*<Card>
-        <CardHeader>*/}
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <CardTitle className="text-2xl">{order.title}</CardTitle>
-                <Badge variant={order.status === "in_progress" ? "default" : "outline"}>
-                  {order.status}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{order.id}</p>
-            </div>
-
-            <div className="flex flex-col items-start lg:items-end gap-2">
-              <div className="flex items-center text-3xl font-bold text-primary mb-1">
-                <DollarSign className="h-6 w-6" />
-                {order.budget}
-              </div>
-              <Badge variant="outline">{order.subject}</Badge>
-            </div>
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <h1 className="text-2xl font-bold">{order.title}</h1>
+            <Badge variant={order.status === "in_progress" ? "default" : "outline"}>
+              {order.status}
+            </Badge>
           </div>
-        {/*</CardHeader>
-      </Card>*/}
+          <p className="text-sm text-muted-foreground">{order.id}</p>
+        </div>
+
+        <div className="flex flex-col items-start lg:items-end gap-2">
+          <div className="flex items-center text-3xl font-bold text-primary mb-1">
+            <DollarSign className="h-6 w-6" />
+            {order.budget}
+          </div>
+          <Badge variant="outline">{order.subject}</Badge>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
         {/* MAIN CONTENT */}
         <div className="lg:col-span-2 space-y-6">
           <Card>
@@ -202,7 +208,6 @@ export default function OrderView() {
               <Tabs defaultValue="overview">
                 <TabsList className="w-full justify-start">
                   <TabsTrigger value="overview">Overview</TabsTrigger>
-                  {/*<TabsTrigger value="milestones">Milestones</TabsTrigger>*/}
                   <TabsTrigger value="files">Files ({order.files.length})</TabsTrigger>
                 </TabsList>
 
@@ -212,29 +217,6 @@ export default function OrderView() {
                     <h3 className="font-semibold mb-2">Description</h3>
                     <p className="text-muted-foreground">{order.description}</p>
                   </div>
-
-                  {/*<Separator />*/}
-
-                  {/*<div>
-                    <h3 className="font-semibold mb-3">Requirements</h3>
-                    <ul className="space-y-2">
-                      {Array.isArray(order.requirements) && order.requirements.length > 0 ? (
-                        order.requirements.map((req, index) => (
-                          <li key={index} className="flex items-start">
-                            <CheckCircle2 className="h-5 w-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-muted-foreground">{req}</span>
-                          </li>
-                        ))
-                      ) : (
-                        <p className="text-muted-foreground">No requirements provided.</p>
-                      )}
-                    </ul>
-                  </div>*/}
-                </TabsContent>
-
-                {/* MILESTONES TAB (optional — backend does not yet provide) */}
-                <TabsContent value="milestones" className="mt-6">
-                  <p className="text-muted-foreground">Milestones feature coming soon.</p>
                 </TabsContent>
 
                 {/* FILES TAB */}
@@ -246,22 +228,14 @@ export default function OrderView() {
                           key={file.id}
                           className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
                         >
-                          {/*<div className="flex items-center space-x-3">
-                            <FileText className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium">{file.name}</p>
-                            </div>
-                          </div>*/}
                           <div
                             onClick={() => openPreview(file.url, file.name)}
-                            className="cursor-pointer flex items-center space-x-3 hover:bg-accent p-4 rounded-lg transition"
+                            className="cursor-pointer flex items-center space-x-3 hover:bg-accent p-2 rounded-lg transition flex-1"
                           >
                             <FileText className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium truncate max-w-[120px] sm:max-w-[180px] md:max-w-[250px]">
-                                {file.name}
-                              </p>
-                            </div>
+                            <p className="font-medium truncate max-w-[120px] sm:max-w-[180px] md:max-w-[250px]">
+                              {file.name}
+                            </p>
                           </div>
 
                           <Button
@@ -278,35 +252,30 @@ export default function OrderView() {
                     <div className="text-center py-8">
                       <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
                       <p className="text-muted-foreground">No files uploaded yet</p>
-                      <Button variant="outline" className="mt-4">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload First File
-                      </Button>
                     </div>
                   )}
                 </TabsContent>
-
               </Tabs>
             </CardContent>
           </Card>
+
+          {/* FILE UPLOAD SECTION */}
+          <FileUploadSection
+            files={uploadFiles}
+            onFilesChange={setUploadFiles}
+            onSubmit={handleFileUpload}
+            isUploading={isUploading}
+          />
         </div>
 
-        {/* SIDEBAR (Client, Type, Dates) */}
-        <div className="space-y-3">
+        {/* SIDEBAR */}
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Order Details</CardTitle>
             </CardHeader>
 
             <CardContent className="space-y-4">
-              {/*<div className="flex items-center text-sm">
-                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Client</p>
-                  <p className="text-muted-foreground">{order.client_id}</p>
-                </div>
-              </div>*/}
-
               <div className="flex items-center text-sm">
                 <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
                 <div>
@@ -353,28 +322,14 @@ export default function OrderView() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button 
-                className="w-full" 
-                variant="outline"
-                onClick={() => navigate(`/writer/chats?orderId=${order.id}`)}
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Message Client
-              </Button>
-
-              <Button className="w-full" variant="outline">
-                <Upload className="h-4 w-4 mr-2" />
-                Submit Work
-              </Button>
-
               <Button className="w-full" variant="outline">
                 Request Revision
               </Button>
             </CardContent>
           </Card>
         </div>
-
       </div>
+
       {/* File Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={closePreview}>
         <DialogContent
@@ -388,7 +343,6 @@ export default function OrderView() {
           </DialogHeader>
 
           <div className="flex-1 flex items-center justify-center bg-muted/10 relative">
-            
             {previewFile?.type === "loading" && (
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

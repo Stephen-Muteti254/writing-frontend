@@ -19,12 +19,14 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function Chats() {
   const navigate = useNavigate();
 
-  // Extract ?order & ?writer from query params
   const { search } = useLocation();
   const params = new URLSearchParams(search);
 
   const writerParam = params.get("writer");
+  const clientParam = params.get("client");
   const orderParam = params.get("order");
+
+  const otherUserParam = writerParam || clientParam;
 
   const { chats, setChats, refreshChats } = useChatContext();
 
@@ -82,9 +84,27 @@ export default function Chats() {
 
   /* ---------- instrumented createChatIfNeeded ---------- */
   const createChatIfNeeded = useCallback(async () => {
-    if (!orderParam || !writerParam) return null;
+    if (!orderParam || !otherUserParam) return null;
+
+    const payload: any = { order_id: orderParam };
+
+    if (user?.role === "client") {
+      if (!otherUserParam) {
+        console.warn("Client must provide writer param");
+        return null;
+      }
+      payload.writer_id = otherUserParam;
+    }
+
+    if (user?.role === "writer") {
+      if (!otherUserParam) {
+        console.warn("Writer must provide client param (otherUserParam is actually clientId)");
+        return null;
+      }
+      payload.client_id = otherUserParam;
+    }
     try {
-      const res = await api.post("/chats", { order_id: orderParam, writer_id: writerParam });
+      const res = await api.post("/chats", payload);
       console.log("DEBUG createChatIfNeeded response:", res?.data);
       // try both shapes (data.chat or top-level chat)
       const chat = (res.data && res.data.chat) ? res.data.chat : (res.data && (res.data.id || res.data.order_id) ? res.data : null);
@@ -94,7 +114,7 @@ export default function Chats() {
       console.error("DEBUG Chat creation failed", err);
       return null;
     }
-  }, [orderParam, writerParam]);
+  }, [orderParam, otherUserParam]);
 
   /* ---------- instrumented fetchMessages ---------- */
   const fetchMessages = useCallback(async (chatId: string) => {
@@ -133,7 +153,7 @@ export default function Chats() {
       if (cancelled) return;
 
       // If no order or writer, stop
-      if (!orderParam || !writerParam) return;
+      if (!orderParam || !otherUserParam) return;
 
       // Create chat OR return existing ID
       const newChatId = await createChatIfNeeded();
@@ -145,7 +165,9 @@ export default function Chats() {
 
       const targetChat = updated.find(c =>
         String(c.order_id) === String(orderParam) &&
-        (String(c.other_user?.id) === String(writerParam) || String(c.writer_id) === String(writerParam))
+        (String(c.other_user?.id) === String(otherUserParam) || 
+        String(c.writer_id) === String(otherUserParam) ||
+        String(c.client_id) === String(otherUserParam))
       );
 
       if (targetChat) {
@@ -155,7 +177,7 @@ export default function Chats() {
     })();
 
     return () => { cancelled = true; };
-  }, [orderParam, writerParam]);
+  }, [orderParam, otherUserParam]);
 
 
 
