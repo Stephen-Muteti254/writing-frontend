@@ -101,8 +101,10 @@ const AdminApplicationDetail = () => {
         ...data,
         proficiency_answers: parsedAnswers,
       });
-      setFeedback(response.data.data.admin_feedback || "");
+      console.log(response.data);
+      setFeedback(response.data.admin_feedback || "");
     } catch (error: any) {
+      console.log(error);
       const message =
         error.response?.data?.message ||
         error.response?.data?.detail ||
@@ -294,7 +296,7 @@ const AdminApplicationDetail = () => {
             </Button>
             <div>
               <h1 className="text-3xl font-bold">Application Review</h1>
-              <p className="text-muted-foreground">Review writer application details</p>
+              {/*<p className="text-muted-foreground">Review writer application details</p>*/}
             </div>
           </div>
           {getStatusBadge(application.status)}
@@ -349,7 +351,7 @@ const AdminApplicationDetail = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <GraduationCap className="h-5 w-5 mr-2" />
+                  {/*<GraduationCap className="h-5 w-5 mr-2" />*/}
                   Educational Background
                 </CardTitle>
               </CardHeader>
@@ -452,7 +454,7 @@ const AdminApplicationDetail = () => {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <FileText className="h-5 w-5 mr-2" />
+                  {/*<FileText className="h-5 w-5 mr-2" />*/}
                   CV/Resume
                 </CardTitle>
               </CardHeader>
@@ -551,7 +553,7 @@ const AdminApplicationDetail = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Admin Review & Feedback</CardTitle>
-                <CardDescription>Provide feedback and take action on this application</CardDescription>
+                {/*<CardDescription>Provide feedback and take action on this application</CardDescription>*/}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">

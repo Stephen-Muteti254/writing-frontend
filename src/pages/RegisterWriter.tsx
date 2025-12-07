@@ -38,7 +38,7 @@ const RegisterWriter = () => {
         full_name: formData.fullName.trim(),
         email: formData.email.trim(),
         password: formData.password,
-        role: "writer"
+        role: "pending_writer"
       };
 
       const response = await api.post("/auth/register", payload);

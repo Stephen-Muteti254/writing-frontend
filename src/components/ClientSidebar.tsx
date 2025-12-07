@@ -143,9 +143,9 @@ export function ClientSidebar() {
 
       <SidebarContent className="px-2 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-4 text-muted-foreground">
+          {/*<SidebarGroupLabel className="px-4 text-muted-foreground">
             Client Dashboard
-          </SidebarGroupLabel>
+          </SidebarGroupLabel>*/}
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {

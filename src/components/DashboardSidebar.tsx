@@ -156,7 +156,7 @@ export function DashboardSidebar() {
       {/* Sidebar Menu */}
       <SidebarContent className="px-2 py-4">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-4 text-muted-foreground">Dashboard</SidebarGroupLabel>
+          {/*<SidebarGroupLabel className="px-4 text-muted-foreground">Dashboard</SidebarGroupLabel>*/}
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
