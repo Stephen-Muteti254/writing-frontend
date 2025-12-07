@@ -58,6 +58,14 @@ const Login = () => {
               navigate("/application-pending");
               break;
 
+            case "awaiting_initial_deposit":
+              toast({
+                title: "Application Under Review",
+                description: "Your application is under review.",
+              });
+              navigate("/application-approved");
+              break;              
+
             default:
               navigate("/writer/orders/in-progress/all");
               break;

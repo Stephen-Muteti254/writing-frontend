@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +8,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Search, MoreVertical, Mail, Star, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Search,
+  MoreVertical,
+  Star,
+  CheckCircle,
+  AlertTriangle,
+  Loader2,
+  UserCheck,
+  Ban,
+  Eye,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import api from "@/lib/api";
@@ -24,7 +43,7 @@ interface Writer {
   rating: number;
   completed_orders: number;
   total_earned: number;
-  status: "active" | "pending" | "suspended-temporary" | "suspended-permanent";
+  account_status: "awaiting-deposit" | "active" | "pending" | "suspended-temporary" | "suspended-permanent";
   joined_at: string;
 }
 
@@ -36,7 +55,7 @@ export default function AdminWriters() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedWriter, setSelectedWriter] = useState<Writer | null>(null);
   const [suspensionDialogOpen, setSuspensionDialogOpen] = useState(false);
-  const [activationDialogOpen, setActivationDialogOpen] = useState(false);
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
 
   // Suspension form
   const [suspensionType, setSuspensionType] = useState<"temporary" | "permanent">("temporary");
@@ -94,7 +113,7 @@ export default function AdminWriters() {
       });
       setWriters((prev) =>
         prev.map((w) =>
-          w.id === id ? { ...w, status: `suspended-${suspensionType}` as const } : w
+          w.id === id ? { ...w, account_status: `suspended-${suspensionType}` as const } : w
         )
       );
       toast({
@@ -110,6 +129,7 @@ export default function AdminWriters() {
     } finally {
       setActionLoading((p) => ({ ...p, [id]: false }));
       setSuspensionDialogOpen(false);
+      resetSuspensionForm();
     }
   };
 
@@ -118,7 +138,7 @@ export default function AdminWriters() {
     try {
       await api.patch(`/admin/writers/${id}/activate`);
       setWriters((prev) =>
-        prev.map((w) => (w.id === id ? { ...w, status: "active" } : w))
+        prev.map((w) => (w.id === id ? { ...w, account_status: "active" } : w))
       );
       toast({ title: "Writer Activated", description: "Account reactivated successfully." });
     } catch {
@@ -129,8 +149,44 @@ export default function AdminWriters() {
       });
     } finally {
       setActionLoading((p) => ({ ...p, [id]: false }));
-      setActivationDialogOpen(false);
     }
+  };
+
+  const handleApproveDeposit = async () => {
+    if (!selectedWriter) return;
+    const id = selectedWriter.id;
+
+    setActionLoading((p) => ({ ...p, [id]: true }));
+    try {
+      await api.patch(`/admin/writers/${id}/approve-deposit`);
+      setWriters((prev) =>
+        prev.map((w) => (w.id === id ? { ...w, account_status: "active" } : w))
+      );
+      toast({
+        title: "Deposit Approved",
+        description: "Writer deposit verified. Account activated.",
+      });
+    } catch {
+      toast({
+        title: "Approval Failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setActionLoading((p) => ({ ...p, [id]: false }));
+      setDepositDialogOpen(false);
+    }
+  };
+
+  const resetSuspensionForm = () => {
+    setSuspensionType("temporary");
+    setSuspensionReasons({
+      blindBidding: false,
+      erroneousSubmissions: false,
+      lowRating: false,
+      clientComplaints: false,
+    });
+    setAdditionalNotes("");
   };
 
   const filteredWriters = writers.filter(
@@ -140,10 +196,12 @@ export default function AdminWriters() {
       w.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getBadgeVariant = (status: Writer["status"]) => {
+  const getBadgeVariant = (status: Writer["account_status"]) => {
     switch (status) {
+      case "awaiting-deposit":
+        return "warning";
       case "active":
-        return "default";
+        return "success";
       case "pending":
         return "secondary";
       case "suspended-temporary":
@@ -155,11 +213,15 @@ export default function AdminWriters() {
     }
   };
 
+  const formatStatus = (status: string) => {
+    return status.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
   return (
     <div className="space-y-6 p-4 lg:p-6">
       <h1 className="text-2xl font-bold">Writer Management</h1>
 
-      <Card className="border-0">
+      <Card className="border-0 shadow-none">
         <CardContent className="p-0">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -185,78 +247,189 @@ export default function AdminWriters() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredWriters.map((writer) => (
-            <Card key={writer.id}>
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-base">{writer.full_name}</CardTitle>
-                    <p className="text-xs text-muted-foreground">{writer.email}</p>
-                  </div>
-                  <Badge variant={getBadgeVariant(writer.status)}>
-                    {actionLoading[writer.id] ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      writer.status.replace("-", " ")
-                    )}
-                  </Badge>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>View Profile</DropdownMenuItem>
-                      {writer.status === "active" && (
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => {
-                            setSelectedWriter(writer);
-                            setSuspensionDialogOpen(true);
-                          }}
-                        >
-                          Suspend
-                        </DropdownMenuItem>
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Writer</TableHead>
+                  <TableHead>Rating</TableHead>
+                  <TableHead>Completed</TableHead>
+                  <TableHead>Total Earned</TableHead>
+                  <TableHead>Joined</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredWriters.map((writer) => (
+                  <TableRow key={writer.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{writer.full_name}</p>
+                        <p className="text-xs text-muted-foreground">{writer.email}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                        <span>{writer.rating.toFixed(1)}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle className="h-4 w-4 text-emerald-500" />
+                        <span>{writer.completed_orders}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium">${writer.total_earned.toFixed(2)}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-muted-foreground text-sm">
+                        {writer.joined_at?.split("T")[0]}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {actionLoading[writer.id] ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Badge variant={getBadgeVariant(writer.account_status)}>
+                          {formatStatus(writer.account_status)}
+                        </Badge>
                       )}
-                      {writer.status.startsWith("suspended") && (
-                        <DropdownMenuItem
-                          onClick={() => handleActivateWriter(writer.id)}
-                        >
-                          Reactivate
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                  <span>{writer.rating.toFixed(1)} / 5.0</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-success" />
-                  <span>{writer.completed_orders} completed</span>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Joined {writer.joined_at.split("T")[0]}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Profile
+                          </DropdownMenuItem>
+                          
+                          {writer.account_status === "awaiting-deposit" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedWriter(writer);
+                                  setDepositDialogOpen(true);
+                                }}
+                                className="text-emerald-600"
+                              >
+                                <UserCheck className="h-4 w-4 mr-2" />
+                                Approve Deposit
+                              </DropdownMenuItem>
+                            </>
+                          )}
+
+                          {writer.account_status === "active" && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => {
+                                  setSelectedWriter(writer);
+                                  setSuspensionDialogOpen(true);
+                                }}
+                              >
+                                <Ban className="h-4 w-4 mr-2" />
+                                Suspend
+                              </DropdownMenuItem>
+                            </>
+                          )}
+
+                          {writer.account_status.startsWith("suspended") && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleActivateWriter(writer.id)}
+                                className="text-emerald-600"
+                              >
+                                <UserCheck className="h-4 w-4 mr-2" />
+                                Reactivate
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
+      {/* Approve Deposit Dialog */}
+      <Dialog open={depositDialogOpen} onOpenChange={setDepositDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Writer Deposit</DialogTitle>
+          </DialogHeader>
+          {selectedWriter && (
+            <div className="space-y-4">
+              <div className="rounded-lg border p-4 space-y-2">
+                <p className="font-medium">{selectedWriter.full_name}</p>
+                <p className="text-sm text-muted-foreground">{selectedWriter.email}</p>
+              </div>
+
+              <div className="flex items-start gap-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-4 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-emerald-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                    Confirm Deposit Verification
+                  </p>
+                  <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                    Approving this deposit will activate the writer's account and allow them to receive orders.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" onClick={() => setDepositDialogOpen(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleApproveDeposit}
+                  disabled={actionLoading[selectedWriter.id]}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {actionLoading[selectedWriter.id] ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <UserCheck className="h-4 w-4 mr-2" />
+                  )}
+                  Approve Deposit
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Suspension Dialog */}
-      <Dialog open={suspensionDialogOpen} onOpenChange={setSuspensionDialogOpen}>
+      <Dialog open={suspensionDialogOpen} onOpenChange={(open) => {
+        setSuspensionDialogOpen(open);
+        if (!open) resetSuspensionForm();
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Suspend Writer</DialogTitle>
           </DialogHeader>
           {selectedWriter && (
             <div className="space-y-4">
+              <div className="rounded-lg border p-4 space-y-2">
+                <p className="font-medium">{selectedWriter.full_name}</p>
+                <p className="text-sm text-muted-foreground">{selectedWriter.email}</p>
+              </div>
+
               <Select
                 value={suspensionType}
                 onValueChange={(val: "temporary" | "permanent") => setSuspensionType(val)}
@@ -265,25 +438,28 @@ export default function AdminWriters() {
                   <SelectValue placeholder="Select suspension type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="temporary">Temporary</SelectItem>
-                  <SelectItem value="permanent">Permanent</SelectItem>
+                  <SelectItem value="temporary">Temporary Suspension</SelectItem>
+                  <SelectItem value="permanent">Permanent Suspension</SelectItem>
                 </SelectContent>
               </Select>
 
-              {Object.entries(suspensionReasons).map(([key, val]) => (
-                <div key={key} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={key}
-                    checked={val}
-                    onCheckedChange={(checked) =>
-                      setSuspensionReasons((r) => ({ ...r, [key]: checked as boolean }))
-                    }
-                  />
-                  <label htmlFor={key} className="text-sm capitalize">
-                    {key.replace(/([A-Z])/g, " $1")}
-                  </label>
-                </div>
-              ))}
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Reason for suspension:</p>
+                {Object.entries(suspensionReasons).map(([key, val]) => (
+                  <div key={key} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={key}
+                      checked={val}
+                      onCheckedChange={(checked) =>
+                        setSuspensionReasons((r) => ({ ...r, [key]: checked as boolean }))
+                      }
+                    />
+                    <label htmlFor={key} className="text-sm">
+                      {key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())}
+                    </label>
+                  </div>
+                ))}
+              </div>
 
               <Textarea
                 placeholder="Additional notes..."
@@ -291,21 +467,29 @@ export default function AdminWriters() {
                 onChange={(e) => setAdditionalNotes(e.target.value)}
               />
 
-              <div className="flex items-center gap-2 bg-amber-50 border p-3 rounded-md">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                <p className="text-sm text-amber-700">
+              <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-4 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <p className="text-sm text-amber-700 dark:text-amber-300">
                   {suspensionType === "permanent"
-                    ? "This will permanently suspend the account."
-                    : "This will temporarily suspend the writer. You can reactivate later."}
+                    ? "This will permanently suspend the account. This action cannot be undone."
+                    : "This will temporarily suspend the writer. You can reactivate their account later."}
                 </p>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button variant="outline" onClick={() => setSuspensionDialogOpen(false)}>
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" onClick={() => setSuspensionDialogOpen(false)} className="flex-1">
                   Cancel
                 </Button>
-                <Button variant="destructive" onClick={handleSuspendWriter}>
-                  Suspend
+                <Button
+                  variant="destructive"
+                  onClick={handleSuspendWriter}
+                  disabled={actionLoading[selectedWriter.id]}
+                  className="flex-1"
+                >
+                  {actionLoading[selectedWriter.id] && (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  )}
+                  Suspend Writer
                 </Button>
               </div>
             </div>
