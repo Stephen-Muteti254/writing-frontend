@@ -13,7 +13,7 @@ interface ProfileCompletionGuardProps {
 }
 
 const ProfileCompletionGuard = ({ children, onOpenProfile }: ProfileCompletionGuardProps) => {
-  const [user, setUser] = useState<any>(null);
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
