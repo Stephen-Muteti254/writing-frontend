@@ -41,39 +41,11 @@ const Login = () => {
         });
 
         if (user.role === "writer") {
-          switch (user.application_status) {
-            case "not_applied":
-              toast({
-                title: "Application Required",
-                description: "Please complete your writer application to continue.",
-              });
-              navigate("/writer-application");
-              break;
-
-            case "pending":
-              toast({
-                title: "Application Under Review",
-                description: "Your application is under review.",
-              });
-              navigate("/application-pending");
-              break;
-
-            case "awaiting_initial_deposit":
-              toast({
-                title: "Application Under Review",
-                description: "Your application is under review.",
-              });
-              navigate("/application-approved");
-              break;              
-
-            default:
-              navigate("/writer/orders/in-progress/all");
-              break;
-          }
+          navigate("/writer");
         } else if (user.role === "client") {
-          navigate("/client/orders");
+          navigate("/client");
         } else if (user.role === "admin") {
-          navigate("/admin/dashboard");
+          navigate("/admin");
         } else {
           navigate("/");
         }

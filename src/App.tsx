@@ -56,6 +56,10 @@ import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { ProfileModalProvider } from "@/contexts/ProfileModalContext";
 
+import EmailVerificationGuard from "@/components/guards/EmailVerificationGuard";
+import ProfileCompletionGuard from "@/components/guards/ProfileCompletionGuard";
+import SuspensionGuard from "@/components/guards/SuspensionGuard";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -211,33 +215,62 @@ const App = () => (
                 path="/writer/*"
                 element={
                   <RequireAuth requiredRole="writer">
-                    <DashboardLayout>
-                      <Routes>
-                        <Route path="/" element={<Navigate to="/writer/orders/in-progress/all" replace />} />
-                        <Route path="orders/:parentTab/*" element={<MyOrders />} />
-                        <Route path="available-orders/:tab" element={<AvailableOrders />} />
-                        <Route path="available-orders" element={<Navigate to="available-orders/all" replace />} />
-                        <Route path="order-details/:orderId" element={<OrderDetails />} />
-                        <Route path="my-bids/edit/:bidId" element={<EditBid />} />
-                        <Route path="my-bids/view/:bidId" element={<EditBid />} />
-                        <Route path="place-bid/:orderId" element={<PlaceBid />} />
-                        <Route path="order-view/:orderId" element={<OrderView />} />
-                        <Route path="submit-work/:orderId" element={<SubmitWork />} />
-                        <Route path="review-submission/:submissionId" element={<ReviewSubmission />} />
-                        <Route path="my-bids/:tab" element={<MyBids />} />
-                        <Route path="my-bids" element={<Navigate to="open" replace />} />
-                        <Route path="chats" element={<Chats />} />
-                        <Route path="leaderboard" element={<Leaderboard />} />
-                        <Route path="balance/:tab" element={<Balance />} />
-                        <Route path="notifications" element={<Notifications />} />
-                        <Route path="notifications-settings" element={<NotificationSettings />} />
-                        <Route path="profile" element={<Profile />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </DashboardLayout>
+                    <DashboardLayout />
                   </RequireAuth>
                 }
-              />
+              >
+                {/* Guards wrapping all writer routes */}
+                <Route
+                  element={
+                    <EmailVerificationGuard>
+                      <ProfileCompletionGuard>
+                        <SuspensionGuard allowNavigation={false} />
+                      </ProfileCompletionGuard>
+                    </EmailVerificationGuard>
+                  }
+                >
+                  {/* Default redirect */}
+                  <Route index element={<Navigate to="orders/in-progress/all" replace />} />
+
+                  {/* Orders */}
+                  <Route path="orders/:parentTab/*" element={<MyOrders />} />
+
+                  {/* Available orders */}
+                  <Route path="available-orders/:tab" element={<AvailableOrders />} />
+                  <Route path="available-orders" element={<Navigate to="available-orders/all" replace />} />
+
+                  {/* Order details */}
+                  <Route path="order-details/:orderId" element={<OrderDetails />} />
+
+                  {/* My bids */}
+                  <Route path="my-bids/edit/:bidId" element={<EditBid />} />
+                  <Route path="my-bids/view/:bidId" element={<EditBid />} />
+                  <Route path="my-bids/:tab" element={<MyBids />} />
+                  <Route path="my-bids" element={<Navigate to="open" replace />} />
+
+                  {/* Place bid / view / submit / review */}
+                  <Route path="place-bid/:orderId" element={<PlaceBid />} />
+                  <Route path="order-view/:orderId" element={<OrderView />} />
+                  <Route path="submit-work/:orderId" element={<SubmitWork />} />
+                  <Route path="review-submission/:submissionId" element={<ReviewSubmission />} />
+
+                  {/* Chats, Leaderboard, Balance */}
+                  <Route path="chats" element={<Chats />} />
+                  <Route path="leaderboard" element={<Leaderboard />} />
+                  <Route path="balance/:tab" element={<Balance />} />
+
+                  {/* Notifications */}
+                  <Route path="notifications" element={<Notifications />} />
+                  <Route path="notifications-settings" element={<NotificationSettings />} />
+
+                  {/* Profile */}
+                  <Route path="profile" element={<Profile />} />
+
+                  {/* Fallback */}
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Route>
+
             </Routes>
             </ProfileModalProvider>
             </ChatProvider>

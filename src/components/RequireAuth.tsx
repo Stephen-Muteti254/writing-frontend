@@ -31,7 +31,7 @@ export const RequireAuth = ({ children, requiredRole }: RequireAuthProps) => {
     };
   }, [accessToken]);
 
-  // 🕓 Wait for both loading & validation
+  // Wait for both loading & validation
   if (isLoading || isValidating) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -40,7 +40,7 @@ export const RequireAuth = ({ children, requiredRole }: RequireAuthProps) => {
     );
   }
 
-  // 🚫 Only redirect after both finished
+  // Only redirect after both finished
   if (!accessToken || !user) {
     console.warn('[RequireAuth] Redirecting due to missing auth state.');
     return <Navigate to="/login" state={{ from: location }} replace />;
