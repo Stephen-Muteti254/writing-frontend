@@ -232,12 +232,16 @@ export default function ClientOrders() {
               {validTabs.map(({ slug, label }) => (
                 <button
                   key={slug}
+                  disabled={initialLoading}
                   onClick={() => navigate(`/client/orders/${slug}`)}
                   className={cn(
                     "px-4 py-2 text-sm font-medium transition-colors",
                     tab === slug
                       ? "border-b-2 border-primary text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      : "text-muted-foreground",
+                    initialLoading
+                      ? "opacity-50 cursor-not-allowed hover:text-muted-foreground"
+                      : "hover:text-foreground"
                   )}
                 >
                   {label}

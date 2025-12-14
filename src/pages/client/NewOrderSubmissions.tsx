@@ -18,18 +18,26 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useFileViewer } from "@/hooks/useFileViewer";
 
 const LIMIT = 10;
 
 interface Submission {
   id: string;
   order_id: string;
+  submission_number: number;
   writer_id: string;
   message: string;
-  files: Array<{ name: string; url: string; size?: number }>;
+  files: Array<{ name: string; path?: string; url?: string; size?: number }>;
   status: string;
   created_at: string;
   updated_at?: string;
+}
+
+interface SubmissionsResponse {
+  order_status: string;
+  writer_assigned: boolean;
+  submissions: Submission[];
 }
 
 export default function OrderSubmissions() {
@@ -50,75 +58,48 @@ export default function OrderSubmissions() {
 
   const loadingRef = useRef(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
-
-  // Mock data for testing
-  const MOCK_SUBMISSIONS: Submission[] = [
-    {
-      id: "sub-1",
-      order_id: orderId || "1",
-      writer_id: "writer-1",
-      message: "Here's the completed research paper. I've included all the required sections with proper citations and references from peer-reviewed journals. The paper covers climate change impacts on ecosystems, policy recommendations, and future projections. Please review and let me know if you need any revisions.",
-      files: [
-        { name: "climate_change_research_final.pdf", url: "#", size: 2456789 },
-        { name: "references_bibliography.docx", url: "#", size: 145632 },
-        { name: "data_analysis.xlsx", url: "#", size: 567890 },
-      ],
-      created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "pending",
-    },
-    {
-      id: "sub-2",
-      order_id: orderId || "1",
-      writer_id: "writer-1",
-      message: "Initial draft for your review. I've covered the main topics including climate science basics, global warming trends, and environmental impact assessments. This draft includes the introduction, methodology, and results sections. I would appreciate your feedback on the structure and content direction before finalizing the conclusion.",
-      files: [
-        { name: "draft_v1.pdf", url: "#", size: 1987654 },
-        { name: "outline.docx", url: "#", size: 45632 },
-      ],
-      created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "reviewed",
-    },
-    {
-      id: "sub-3",
-      order_id: orderId || "1",
-      writer_id: "writer-1",
-      message: "Research notes and preliminary sources for your reference. I've compiled a comprehensive list of academic sources and structured an outline for the paper.",
-      files: [
-        { name: "research_notes.pdf", url: "#", size: 876543 },
-      ],
-      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "reviewed",
-    },
-  ];
+  const { previewFile, openPreview, closePreview, downloadFile } = useFileViewer();
+  const [markingComplete, setMarkingComplete] = useState(false);
+  const [orderStatus, setOrderStatus] = useState<string>("in_progress");
 
   // Fetch submissions (using mock data)
   const fetchSubmissions = useCallback(
-    async (p = 1, reset = false) => {
-      if (!reset && loadingRef.current) return;
+    async (reset = false) => {
+      if (loadingRef.current) return;
       loadingRef.current = true;
 
       try {
         reset ? setInitialLoading(true) : setLoading(true);
 
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 600));
+        const res = await api.get(`/orders/${orderId}/submissions`);
 
-        setWriterAssigned(true);
-        setSubmissions(MOCK_SUBMISSIONS);
-        setPage(1);
+        const data: Submission[] = res.data || [];
+        console.log(data);
+
+        setSubmissions(data.submissions || []);
+        setWriterAssigned(data.writer_assigned || false);
+        setOrderStatus(data.order_status);
         setHasMore(false);
       } catch (err: any) {
         const msg =
-          err?.response?.data?.error?.message || err?.message || "Failed to load submissions";
-        toast({ title: "Error", description: msg, variant: "destructive" });
+          err?.response?.data?.error?.message ||
+          err?.response?.data?.message ||
+          "Failed to load submissions";
+
+        toast({
+          title: "Error",
+          description: msg,
+          variant: "destructive",
+        });
       } finally {
+        setInitialLoading(false);
         setLoading(false);
-        if (reset) setInitialLoading(false);
         loadingRef.current = false;
       }
     },
     [orderId, toast]
   );
+
 
   useEffect(() => {
     fetchSubmissions(1, true);
@@ -169,14 +150,13 @@ export default function OrderSubmissions() {
 
   // Mark order complete
   const handleMarkComplete = async () => {
+    setMarkingComplete(true);
     try {
       await api.post(`/orders/${orderId}/complete`);
-
       toast({
         title: "Order Completed",
         description: "This order has been marked as complete.",
       });
-
       navigate("/client/orders/completed");
     } catch (err: any) {
       toast({
@@ -184,6 +164,8 @@ export default function OrderSubmissions() {
         description: err.response?.data?.message || "Failed to mark order as complete",
         variant: "destructive",
       });
+    } finally {
+      setMarkingComplete(false);
     }
   };
 
@@ -191,11 +173,24 @@ export default function OrderSubmissions() {
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        {/*<Button variant="ghost" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Orders
-        </Button>*/}
         <h1 className="text-2xl font-bold">Order Submissions</h1>
+        {orderStatus !== "completed" && (
+          <div className="flex gap-2 pt-2">
+            <Button onClick={handleMarkComplete} disabled={markingComplete || !submissions.length}>
+              {markingComplete ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+              Mark as Complete
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => setShowRevisionDialog(true)}
+              disabled={!submissions.length}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Request Revision
+            </Button>
+          </div>
+        )}
       </div>
 
       <Card className="border-0 h-[calc(100dvh-10rem)] overflow-hidden relative">
@@ -227,12 +222,17 @@ export default function OrderSubmissions() {
               {/* No submissions yet */}
               {writerAssigned && submissions.length === 0 && !initialLoading && (
                 <Card className="border-dashed">
-                  <CardContent className="p-8 text-center">
-                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="font-semibold text-lg mb-2">No Submissions Yet</h3>
-                    <p className="text-muted-foreground">
-                      The assigned writer hasn't submitted any work yet. Check back later or message
-                      them for an update.
+                  <CardContent className="p-8 text-center space-y-3">
+                    <FileText className="h-12 w-12 mx-auto text-muted-foreground" />
+                    <h3 className="font-semibold text-lg">
+                      No Submissions Yet
+                    </h3>
+                    <p className="text-muted-foreground max-w-md mx-auto">
+                      The assigned writer has not submitted any work for this order yet.
+                      Submissions will appear here as soon as the writer uploads their work.
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      You’ll be able to review files, request revisions, or mark the order as complete once a submission is made.
                     </p>
                   </CardContent>
                 </Card>
@@ -244,7 +244,7 @@ export default function OrderSubmissions() {
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-lg">Submission #{submissions.length - index}</CardTitle>
+                        <CardTitle className="text-lg">Submission {submission.submission_number}</CardTitle>
                         <p className="text-sm text-muted-foreground mt-1">
                           {new Date(submission.created_at).toLocaleString()}
                         </p>
@@ -269,54 +269,29 @@ export default function OrderSubmissions() {
                       <div>
                         <Label className="text-sm font-semibold">Submitted Files:</Label>
                         <div className="mt-2 space-y-2">
-                          {submission.files.map((file, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-md bg-primary/10">
-                                  <FileText className="h-4 w-4 text-primary" />
+                          {submission.files.map((file, idx) => {
+                            const fileUrl = `/orders/submissions/files/${submission.order_id}/${submission.id}/${file.name}`;
+                            return (
+                              <div key={idx} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center gap-3 cursor-pointer" onClick={() => openPreview(fileUrl, file.name)}>
+                                  <div className="p-2 rounded-md bg-primary/10">
+                                    <FileText className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{file.name}</p>
+                                    {file.size && <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>}
+                                  </div>
                                 </div>
-                                <div>
-                                  <p className="font-medium text-sm">{file.name}</p>
-                                  {file.size && (
-                                    <p className="text-xs text-muted-foreground">
-                                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                              <Button size="sm" variant="ghost" asChild>
-                                <a href={file.url} download target="_blank" rel="noopener noreferrer">
+
+                                <Button size="sm" variant="outline" onClick={() => downloadFile(fileUrl, file.name)}>
                                   <Download className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            </div>
-                          ))}
+                                </Button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setSelectedSubmissionId(submission.id);
-                          setShowRevisionDialog(true);
-                        }}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Request Revision
-                      </Button>
-
-                      <Button size="sm" onClick={handleMarkComplete}>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Mark as Complete
-                      </Button>
-                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -367,6 +342,68 @@ export default function OrderSubmissions() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!previewFile} onOpenChange={closePreview}>
+        <DialogContent
+          forceMount
+          className="z-50 m-0 p-0 gap-0 w-full h-full max-w-none bg-background border-none rounded-none overflow-hidden flex flex-col overflow-y-auto"
+        >
+          <DialogHeader className="flex items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 py-1 shrink-0">
+            <DialogTitle className="text-lg font-semibold">
+              {previewFile?.name || "Preview"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 flex items-center justify-center bg-muted/10 relative">
+            {previewFile?.type === "loading" && (
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Loading file...</p>
+              </div>
+            )}
+
+            {previewFile?.type === "pdf" && previewFile.url && (
+              <iframe
+                src={`${previewFile.url}#toolbar=0`}
+                className="w-full h-full border-0 bg-white"
+                title={previewFile.name}
+              />
+            )}
+
+            {previewFile?.type === "image" && previewFile.url && (
+              <img
+                src={previewFile.url}
+                alt={previewFile.name}
+                className="max-w-full max-h-full object-contain"
+              />
+            )}
+
+            {(previewFile?.type === "document" || previewFile?.type === "other") &&
+              previewFile.rawUrl && (
+                <div className="text-center space-y-3">
+                  <p className="text-muted-foreground">
+                    Preview unavailable for this file type.
+                  </p>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      downloadFile(
+                        previewFile.rawUrl,
+                        previewFile.rawUrl.split("/").pop() || previewFile.name
+                      )
+                    }
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download to View
+                  </Button>
+                </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

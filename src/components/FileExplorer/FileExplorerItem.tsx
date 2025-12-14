@@ -45,6 +45,11 @@ export function FileExplorerItem({
 
   const canCancel = order.status !== "completed" && order.status !== "cancelled";
 
+  const handleExpandClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggle?.(order.id);
+  };
+
   const handleOrderClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -88,7 +93,7 @@ export function FileExplorerItem({
         {/* Expand Icon */}
         <button 
           className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-          onClick={handleOrderClick}
+          onClick={handleExpandClick}
         >
           {isExpanded ? (
             <ChevronDown className="h-4 w-4" />
@@ -138,14 +143,15 @@ export function FileExplorerItem({
             })
             .map((subdir) => {
               const Icon = subdir.icon;
+              const pathname = window.location.pathname;
+
               const isActive =
-                (subdir.slug === "view" &&
-                  currentOrderId === order.id &&
-                  !window.location.pathname.includes("/edit") &&
-                  !window.location.pathname.includes("/bids") &&
-                  !window.location.pathname.includes("/submissions")) ||
-                (subdir.slug !== "view" &&
-                  window.location.pathname.includes(`/${subdir.slug}`));
+                pathname.includes(`/client/orders/${currentTab}/${order.id}`) &&
+                (
+                  subdir.slug === "view"
+                    ? pathname === `/client/orders/${currentTab}/${order.id}`
+                    : pathname.includes(`/${subdir.slug}`)
+                );
 
               return (
                 <button
