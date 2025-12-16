@@ -59,14 +59,11 @@ const ApplicationPending = () => {
             </ul>
           </div>
 
-          <div className="flex flex-col gap-2">
+          {/*<div className="flex flex-col gap-2">
             <Button asChild className="w-full">
               <Link to="/">Return to Home</Link>
             </Button>
-            {/*<Button variant="outline" asChild className="w-full">
-              <Link to="/contact">Contact Support</Link>
-            </Button>*/}
-          </div>
+          </div>*/}
         </CardContent>
       </Card>
     </div>

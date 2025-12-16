@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       const response = await api.get('/auth/me');
       console.debug('[Auth] validate response:', response.status, response.data);
 
-      const userData = response.data?.user || response.data?.data || response.data;
+      const userData = response.data;
 
       if (response.status === 200 && userData?.id) {
         console.debug('[Auth] token valid, updating user.');
@@ -84,21 +84,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         localStorage.getItem('user') || sessionStorage.getItem('user');
 
       if (storedToken && storedUser) {
-        // ✅ Immediately restore token and user before validation
-        setAccessToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        // set token immediately for API headers
         api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
 
         try {
-          const isValid = await validateTokenWithBackend();
-          if (!cancelled && !isValid) {
-            console.warn('[Auth] Token invalid, clearing storage.');
-            clearStorage();
-            setUser(null);
-            setAccessToken(null);
+          const isValid = await validateTokenWithBackend(storedToken);
+          if (!cancelled) {
+            if (isValid) {
+              setUser(JSON.parse(storedUser));
+              setAccessToken(storedToken);
+            } else {
+              clearStorage();
+            }
           }
         } catch (error) {
           console.error('[Auth] Error validating stored token:', error);
+          if (!cancelled) clearStorage();
         }
       } else {
         clearStorage();
@@ -108,10 +109,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     loadAuthState();
+
     return () => {
       cancelled = true;
     };
   }, []);
+
 
 
   const validateToken = async (): Promise<boolean> => {

@@ -20,6 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useLocation } from "react-router-dom";
 
 interface Order {
   id: string;
@@ -38,7 +39,8 @@ export default function ClientOrders() {
   const params = useParams();
   const { tab } = params;
   const orderId = params.orderId;
-  const isCreate = params['*']?.includes("create");
+  const { pathname } = useLocation();
+  const isCreate = pathname.endsWith("/create");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -225,7 +227,7 @@ export default function ClientOrders() {
       {/* Split Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Panel - Order Listings */}
-        <div className="w-80 border-r border-border flex flex-col bg-card">
+        <div className="w-60 border-r border-border flex flex-col bg-card">
           {/* Tabs */}
           <ScrollArea className="w-full pb-2 border-b border-border">
             <div className="flex whitespace-nowrap">

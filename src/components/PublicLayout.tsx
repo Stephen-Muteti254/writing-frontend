@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileText, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -108,7 +108,7 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
       </nav>
 
       {/* Main Content */}
-      <main>{children}</main>
+      <main><Outlet /></main>
 
       {/* Footer */}
       <footer className="border-t border-border bg-card mt-auto">

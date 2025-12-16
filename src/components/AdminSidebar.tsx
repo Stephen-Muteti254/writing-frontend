@@ -39,7 +39,7 @@ const menuItems = [
   { title: "Client Management", url: "/admin/clients", icon: Users },
   { title: "Writer Management", url: "/admin/writers", icon: UserCheck },
   { title: "Writer Applications", url: "/admin/applications", icon: FileCheck },
-  { title: "Payments", url: "/admin/payments", icon: DollarSign },
+  { title: "Payments", url: "/admin/payments/all", icon: DollarSign },
   { title: "System Notifications", url: "/admin/notifications", icon: Bell },
   { title: "Support Chats", url: "/admin/support", icon: MessageSquare },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
@@ -86,10 +86,10 @@ export function AdminSidebar() {
         <div className="flex items-center space-x-3 flex-1 min-w-0">
           {open && (
             <div className="flex items-center space-x-2 flex-1 min-w-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-destructive to-destructive/80 rounded-lg flex items-center justify-center">
+              {/*<div className="w-8 h-8 bg-gradient-to-br from-destructive to-destructive/80 rounded-lg flex items-center justify-center">
                 <Shield className="text-destructive-foreground h-5 w-5" />
-              </div>
-              <h1 className="font-bold text-lg text-foreground truncate">Admin Panel</h1>
+              </div>*/}
+              <h1 className="font-bold text-lg text-foreground truncate">{user.full_name}</h1>
             </div>
           )}
         </div>

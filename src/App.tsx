@@ -33,7 +33,6 @@ import AdminSupport from "./pages/admin/AdminSupport";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminApplicationDetail from "./pages/admin/AdminApplicationDetail";
-// import ClientOrders from "./pages/client/ClientOrders";
 import NewClientOrders from "./pages/client/NewClientOrders";
 import OrderSubmissions from "./pages/client/NewOrderSubmissions";
 import OrderBids from "./pages/client/OrderBids";
@@ -46,6 +45,7 @@ import RegisterWriter from "./pages/RegisterWriter";
 import ApplicationPending from "./pages/ApplicationPending";
 import ApplicationApproved from "./pages/ApplicationApproved";
 import WriterApplication from "./pages/WriterApplication";
+import EmailVerification from "./pages/EmailVerification";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
@@ -54,11 +54,14 @@ import { RequireAuth } from '@/components/RequireAuth';
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ChatProvider } from "@/contexts/ChatContext";
+import { SupportChatProvider } from "@/contexts/SupportChatContext";
+
 import { ProfileModalProvider } from "@/contexts/ProfileModalContext";
 
 import EmailVerificationGuard from "@/components/guards/EmailVerificationGuard";
 import ProfileCompletionGuard from "@/components/guards/ProfileCompletionGuard";
 import SuspensionGuard from "@/components/guards/SuspensionGuard";
+import ApplicationStatusGuard from "@/components/guards/ApplicationStatusGuard";
 
 const queryClient = new QueryClient();
 
@@ -76,204 +79,205 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <NotificationProvider>
-            <ChatProvider>
-            <ProfileModalProvider>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={
-                <PublicLayout>
-                  <Landing />
-                </PublicLayout>
-              } />
-              <Route path="/login" element={
-                <PublicLayout>
-                  <Login />
-                </PublicLayout>
-              } />
-              <Route path="/register" element={
-                <PublicLayout>
-                  <Register />
-                </PublicLayout>
-              } />
-              <Route path="/register/client" element={
-                <PublicLayout>
-                  <RegisterClient />
-                </PublicLayout>
-              } />
-              <Route path="/register/writer" element={
-                <PublicLayout>
-                  <RegisterWriter />
-                </PublicLayout>
-              } />
-              <Route path="/writer-application" element={
-                <PublicLayout>
-                  <WriterApplication />
-                </PublicLayout>
-              } />
-              <Route path="/application-pending" element={
-                <PublicLayout>
-                  <ApplicationPending />
-                </PublicLayout>
-              } />
-              <Route path="/application-approved" element={
-                <PublicLayout>
-                  <ApplicationApproved />
-                </PublicLayout>
-              } />
-              <Route path="/about" element={
-                <PublicLayout>
-                  <About />
-                </PublicLayout>
-              } />
-              <Route path="/contact" element={
-                <PublicLayout>
-                  <Contact />
-                </PublicLayout>
-              } />
-              <Route path="/privacy" element={
-                <PublicLayout>
-                  <Privacy />
-                </PublicLayout>
-              } />
-              <Route path="/terms" element={
-                <PublicLayout>
-                  <Terms />
-                </PublicLayout>
-              } />
+              <ChatProvider>
+              <SupportChatProvider>
+                <ProfileModalProvider>
 
-              {/* Admin Routes */}
-              <Route
-                path="/admin/*"
-                element={
-                  <RequireAuth requiredRole="admin">
-                    <AdminLayout>
-                      <Routes>
-                        <Route path="clients" element={<AdminClients />} />
-                        <Route path="writers" element={<AdminWriters />} />
-                        <Route path="applications" element={<AdminApplications />} />
-                        <Route path="applications/:id" element={<AdminApplicationDetail />} />
-                        <Route path="payments" element={<Navigate to="/admin/payments/all" replace />} />
-                        <Route path="payments/:tab" element={<AdminPayments />} />
-                        <Route path="notifications" element={<AdminNotifications />} />
-                        <Route path="support" element={<AdminSupport />} />
-                        <Route path="analytics" element={<AdminAnalytics />} />
-                        <Route path="*" element={<Navigate to="/admin/clients" replace />} />
-                      </Routes>
-                    </AdminLayout>
-                  </RequireAuth>
-                }
-              />
+                  <Routes>
+                    {/* ================= PUBLIC ================= */}
+                    <Route element={<PublicLayout />}>
+                      <Route index element={<Landing />} />
+                      <Route path="login" element={<Login />} />
+                      <Route path="register" element={<Register />} />
+                      <Route path="register/client" element={<RegisterClient />} />
+                      <Route path="register/writer" element={<RegisterWriter />} />
+                      <Route path="about" element={<About />} />
+                      <Route path="contact" element={<Contact />} />
+                      <Route path="privacy" element={<Privacy />} />
+                      <Route path="terms" element={<Terms />} />
 
-              <Route
-                path="/client/*"
-                element={
-                  <RequireAuth requiredRole="client">
-                    <ClientLayout />
-                  </RequireAuth>
-                }
-              >
-                {/* /client → /client/orders/in-progress */}
-                <Route index element={<Navigate to="orders/in-progress" replace />} />
+                      {/* Email verification (public layout only) */}
+                      <Route path="email-verification" element={<EmailVerification />} />
 
-                {/* /client/orders → /client/orders/in-progress */}
-                <Route path="orders" element={<Navigate to="in-progress" replace />} />
+                      {/* ===== Writer Onboarding (auth + public layout) ===== */}
+                      <Route
+                        path="writer-onboarding"
+                        element={<RequireAuth requiredRole="writer" />}
+                      >
+                        <Route element={<EmailVerificationGuard />}>
+                          <Route element={<ApplicationStatusGuard />}>
+                            <Route path="apply" element={<WriterApplication />} />
+                            <Route path="pending" element={<ApplicationPending />} />
+                            <Route path="approved" element={<ApplicationApproved />} />
+                          </Route>
+                        </Route>
+                      </Route>
+                    </Route>
 
-                {/* All order-related pages inside NewClientOrders */}
-                <Route path="orders/:tab" element={<NewClientOrders />}>
-                  <Route index element={null} />
+                    {/* ================= ADMIN ================= */}
+                    <Route element={<RequireAuth requiredRole="admin" />}>
+                      <Route element={<EmailVerificationGuard />}>
+                        <Route path="/admin" element={<AdminLayout />}>
+                          <Route index element={<Navigate to="clients" replace />} />
+                          <Route path="clients" element={<AdminClients />} />
+                          <Route path="writers" element={<AdminWriters />} />
+                          <Route path="applications" element={<AdminApplications />} />
+                          <Route
+                            path="applications/:id"
+                            element={<AdminApplicationDetail />}
+                          />
 
-                  {/* Order view */}
-                  <Route path=":orderId" element={<OrderDetails />} />
+                          {/* Payments */}
+                          <Route path="payments">
+                            <Route index element={<Navigate to="all" replace />} />
+                            <Route path=":tab" element={<AdminPayments />} />
+                          </Route>
 
-                  {/* Edit */}
-                  <Route path=":orderId/edit" element={<OrderFormPage />} />
+                          <Route path="notifications" element={<AdminNotifications />} />
+                          <Route path="support" element={<AdminSupport />} />
+                          <Route path="analytics" element={<AdminAnalytics />} />
 
-                  {/* Bids — FIXED NESTING */}
-                  <Route path=":orderId/bids/:bidTab" element={<OrderBids />} />
+                          <Route path="*" element={<Navigate to="clients" replace />} />
+                        </Route>
+                      </Route>
+                    </Route>
 
-                  {/* Submissions */}
-                  <Route path=":orderId/submissions" element={<OrderSubmissions />} />
+                    {/* ================= CLIENT ================= */}
+                    <Route element={<RequireAuth requiredRole="client" />}>
+                      <Route element={<EmailVerificationGuard />}>
+                        <Route path="/client" element={<ClientLayout />}>
+                          <Route
+                            index
+                            element={<Navigate to="orders/in-progress" replace />}
+                          />
 
-                  {/* Create order inside outlet */}
-                  <Route path="create" element={<OrderFormPage />} />
-                </Route>
+                          {/* Orders */}
+                          <Route path="orders/:tab" element={<NewClientOrders />}>
+                            <Route path=":orderId" element={<OrderDetails />} />
+                            <Route path=":orderId/edit" element={<OrderFormPage />} />
+                            <Route
+                              path=":orderId/bids/:bidTab"
+                              element={<OrderBids />}
+                            />
+                            <Route
+                              path=":orderId/submissions"
+                              element={<OrderSubmissions />}
+                            />
+                            <Route path="create" element={<OrderFormPage />} />
+                          </Route>
 
-                {/* Chats */}
-                <Route path="chats" element={<Chats />} />
+                          {/* Chats */}
+                          <Route path="chats" element={<Chats />} />
 
-                {/* Balance */}
-                <Route path="balance/:tab" element={<Balance />} />
+                          {/* Balance */}
+                          <Route path="balance/:tab" element={<Balance />} />
 
-                {/* Notifications */}
-                <Route path="notifications" element={<Notifications />} />
+                          {/* Notifications */}
+                          <Route path="notifications" element={<Notifications />} />
 
-                {/* Fallback */}
-                <Route path="*" element={<Navigate to="orders/in-progress" replace />} />
-              </Route>
+                          <Route
+                            path="*"
+                            element={<Navigate to="orders/in-progress" replace />}
+                          />
+                        </Route>
+                      </Route>
+                    </Route>
 
-              <Route
-                path="/writer/*"
-                element={
-                  <RequireAuth requiredRole="writer">
-                    <DashboardLayout />
-                  </RequireAuth>
-                }
-              >
-                {/* Guards wrapping all writer routes */}
-                <Route
-                  element={
-                    <EmailVerificationGuard>
-                      <ProfileCompletionGuard>
-                        <SuspensionGuard allowNavigation={false} />
-                      </ProfileCompletionGuard>
-                    </EmailVerificationGuard>
-                  }
-                >
-                  {/* Default redirect */}
-                  <Route index element={<Navigate to="orders/in-progress/all" replace />} />
+                    {/* ================= WRITER ================= */}
+                    <Route element={<RequireAuth requiredRole="writer" />}>
+                      <Route element={<EmailVerificationGuard />}>
+                        <Route path="/writer">
+                          <Route element={<ApplicationStatusGuard />}>
+                            <Route element={<DashboardLayout />}>
+                              <Route element={<ProfileCompletionGuard />}>
+                                <Route element={<SuspensionGuard allowNavigation={false} />}>
 
-                  {/* Orders */}
-                  <Route path="orders/:parentTab/*" element={<MyOrders />} />
+                                  {/* Default */}
+                                  <Route
+                                    index
+                                    element={<Navigate to="orders/in-progress/all" replace />}
+                                  />
 
-                  {/* Available orders */}
-                  <Route path="available-orders/:tab" element={<AvailableOrders />} />
-                  <Route path="available-orders" element={<Navigate to="available-orders/all" replace />} />
+                                  {/* Orders */}
+                                  <Route
+                                    path="orders/:parentTab/*"
+                                    element={<MyOrders />}
+                                  />
 
-                  {/* Order details */}
-                  <Route path="order-details/:orderId" element={<OrderDetails />} />
+                                  {/* Available Orders */}
+                                  <Route
+                                    path="available-orders/:tab"
+                                    element={<AvailableOrders />}
+                                  />
+                                  <Route
+                                    path="available-orders"
+                                    element={
+                                      <Navigate to="available-orders/all" replace />
+                                    }
+                                  />
 
-                  {/* My bids */}
-                  <Route path="my-bids/edit/:bidId" element={<EditBid />} />
-                  <Route path="my-bids/view/:bidId" element={<EditBid />} />
-                  <Route path="my-bids/:tab" element={<MyBids />} />
-                  <Route path="my-bids" element={<Navigate to="open" replace />} />
+                                  {/* Order details */}
+                                  <Route
+                                    path="order-details/:orderId"
+                                    element={<OrderDetails />}
+                                  />
 
-                  {/* Place bid / view / submit / review */}
-                  <Route path="place-bid/:orderId" element={<PlaceBid />} />
-                  <Route path="order-view/:orderId" element={<OrderView />} />
-                  <Route path="submit-work/:orderId" element={<SubmitWork />} />
-                  <Route path="review-submission/:submissionId" element={<ReviewSubmission />} />
+                                  {/* My bids */}
+                                  <Route path="my-bids/edit/:bidId" element={<EditBid />} />
+                                  <Route path="my-bids/view/:bidId" element={<EditBid />} />
+                                  <Route path="my-bids/:tab" element={<MyBids />} />
+                                  <Route
+                                    path="my-bids"
+                                    element={<Navigate to="open" replace />}
+                                  />
 
-                  {/* Chats, Leaderboard, Balance */}
-                  <Route path="chats" element={<Chats />} />
-                  <Route path="leaderboard" element={<Leaderboard />} />
-                  <Route path="balance/:tab" element={<Balance />} />
+                                  {/* Actions */}
+                                  <Route
+                                    path="place-bid/:orderId"
+                                    element={<PlaceBid />}
+                                  />
+                                  <Route
+                                    path="order-view/:orderId"
+                                    element={<OrderView />}
+                                  />
+                                  <Route
+                                    path="submit-work/:orderId"
+                                    element={<SubmitWork />}
+                                  />
+                                  <Route
+                                    path="review-submission/:submissionId"
+                                    element={<ReviewSubmission />}
+                                  />
 
-                  {/* Notifications */}
-                  <Route path="notifications" element={<Notifications />} />
-                  <Route path="notifications-settings" element={<NotificationSettings />} />
+                                  {/* Extras */}
+                                  <Route path="chats" element={<Chats />} />
+                                  <Route path="leaderboard" element={<Leaderboard />} />
+                                  <Route path="balance/:tab" element={<Balance />} />
+                                  <Route
+                                    path="notifications"
+                                    element={<Notifications />}
+                                  />
+                                  <Route
+                                    path="notifications-settings"
+                                    element={<NotificationSettings />}
+                                  />
+                                  <Route path="profile" element={<Profile />} />
 
-                  {/* Profile */}
-                  <Route path="profile" element={<Profile />} />
+                                  <Route path="*" element={<NotFound />} />
 
-                  {/* Fallback */}
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Route>
+                                </Route>
+                              </Route>
+                            </Route>
+                          </Route>
+                        </Route>
+                      </Route>
+                    </Route>
 
-            </Routes>
-            </ProfileModalProvider>
-            </ChatProvider>
+                  </Routes>
+
+                </ProfileModalProvider>
+              </SupportChatProvider>
+              </ChatProvider>
             </NotificationProvider>
           </AuthProvider>
         </BrowserRouter>

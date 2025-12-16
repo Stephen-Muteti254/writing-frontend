@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UserCog, CheckCircle2, ArrowRight, AlertTriangle } from "lucide-react";
-import api from "@/lib/api";
-import { ReactNode } from "react";
+import { UserCog, CheckCircle2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { Outlet } from "react-router-dom";
 
 interface ProfileCompletionGuardProps {
   children: ReactNode;
@@ -13,24 +12,14 @@ interface ProfileCompletionGuardProps {
 }
 
 const ProfileCompletionGuard = ({ children, onOpenProfile }: ProfileCompletionGuardProps) => {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    api.get("/auth/me")
-      .then(res => {
-        console.log("ProfileCompletionGuard API response:", res.data);
-        setUser(res.data);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  const { user, isLoading } = useAuth();
 
-  if (loading) return <div>Loading...</div>;
+  if (isLoading) return <div>Loading...</div>;
   if (!user) return null;
 
-  const needsCompletion = user.account_status === "paid_initial_deposit";
-  if (!needsCompletion) return <>{children}</>;
+  const needsCompletion = user.account_status === "paid_initial_deposit" || user.application_status === "paid_initial_deposit";
+  if (!needsCompletion) return <Outlet />;
 
   return (
     <div className="flex items-center justify-center min-h-full p-4">
@@ -41,6 +30,7 @@ const ProfileCompletionGuard = ({ children, onOpenProfile }: ProfileCompletionGu
           </div>
           <CardTitle className="text-2xl font-bold">Complete Your Profile</CardTitle>
         </CardHeader>
+
         <CardContent className="space-y-6">
           <Alert className="border-info/30 bg-info/5">
             <CheckCircle2 className="h-4 w-4 text-success" />
@@ -48,12 +38,11 @@ const ProfileCompletionGuard = ({ children, onOpenProfile }: ProfileCompletionGu
               Initial deposit received. Complete your profile to access available orders.
             </AlertDescription>
           </Alert>
-          <div className="pt-4">
-            <Button className="w-full" size="lg" variant="default" onClick={onOpenProfile}>
-              Complete Profile Setup
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
+
+          <Button className="w-full" size="lg" onClick={onOpenProfile}>
+            Complete Profile Setup
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Button>
         </CardContent>
       </Card>
     </div>

@@ -23,10 +23,6 @@ export function DashboardLayout({ noPadding }: DashboardLayoutProps) {
   const disablePadding =
     noPadding || location.pathname.includes("/writer/chats");
 
-  if (!user?.is_verified) {
-    return <EmailVerificationGuard />;
-  }
-
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-background">

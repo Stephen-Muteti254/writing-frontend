@@ -1,7 +1,16 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from "react";
 import api from "@/lib/api";
 import ChatPanel from "@/components/chatpanel";
 import { useAuth } from "@/contexts/AuthContext";
+
+/* ================= TYPES ================= */
 
 interface Chat {
   id: string;
@@ -14,20 +23,32 @@ interface Chat {
   unread_count: number;
 }
 
-interface ChatContextType {
+interface SupportChatContextType {
   chats: Chat[];
   unreadChats: number;
   refreshChats: () => Promise<void>;
   setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
-  openSupportChat: () => void;
+
+  openSupportChat: (chatId?: string) => void;
   closeChat: () => void;
+
   isChatOpen: boolean;
   currentChatId: string | null;
 }
 
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
+/* ================= CONTEXT ================= */
 
-export const ChatProvider = ({ children }: { children: ReactNode }) => {
+const SupportChatContext = createContext<SupportChatContextType | undefined>(
+  undefined
+);
+
+/* ================= PROVIDER ================= */
+
+export const SupportChatProvider = ({
+  children,
+}: {
+  children: ReactNode;
+}) => {
   const { user } = useAuth();
 
   const [chats, setChats] = useState<Chat[]>([]);
@@ -36,22 +57,30 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
 
+  /* -------- Fetch chats -------- */
   const refreshChats = useCallback(async () => {
     try {
       const res = await api.get("/chats", { params: { limit: 100 } });
       const fetchedChats: Chat[] = res.data?.data?.chats || [];
+
       setChats(fetchedChats);
-      setUnreadChats(fetchedChats.reduce((acc, chat) => acc + (chat.unread_count || 0), 0));
+      setUnreadChats(
+        fetchedChats.reduce(
+          (acc, chat) => acc + (chat.unread_count || 0),
+          0
+        )
+      );
     } catch (err) {
-      console.error("Failed to fetch chats:", err);
+      console.error("Failed to fetch support chats:", err);
     }
   }, []);
 
   useEffect(() => {
-    refreshChats();
-  }, [refreshChats]);
+    if (user) refreshChats();
+  }, [refreshChats, user]);
 
-  const openNormalChat = (chatId: string = "normal") => {
+  /* -------- Open / close support chat -------- */
+  const openSupportChat = (chatId: string = "support") => {
     setCurrentChatId(chatId);
     setIsChatOpen(true);
   };
@@ -61,21 +90,22 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     setCurrentChatId(null);
   };
 
-  // Global event
+  /* -------- Global event hook -------- */
   useEffect(() => {
     const handler = () => openSupportChat();
-    window.addEventListener("open-normal-chat", handler);
-    return () => window.removeEventListener("open-normal-chat", handler);
+    window.addEventListener("open-support-chat", handler);
+    return () =>
+      window.removeEventListener("open-support-chat", handler);
   }, []);
 
   return (
-    <ChatContext.Provider
+    <SupportChatContext.Provider
       value={{
         chats,
         unreadChats,
         refreshChats,
         setChats,
-        openNormalChat,
+        openSupportChat,
         closeChat,
         isChatOpen,
         currentChatId,
@@ -83,7 +113,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
     >
       {children}
 
-      {/* ChatPanel mounted globally under provider */}
+      {/* Global Support Chat Panel */}
       {user && currentChatId && (
         <ChatPanel
           chatId={currentChatId}
@@ -92,17 +122,27 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
           onClose={closeChat}
         />
       )}
-    </ChatContext.Provider>
+    </SupportChatContext.Provider>
   );
 };
 
-export const useChatContext = () => {
-  const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error("useChatContext must be used within ChatProvider");
+/* ================= HOOK ================= */
+
+export const useSupportChat = () => {
+  const ctx = useContext(SupportChatContext);
+  if (!ctx) {
+    throw new Error(
+      "useSupportChat must be used within SupportChatProvider"
+    );
+  }
   return ctx;
 };
 
-// Helper to dispatch global event (safe outside components)
-export const triggerNormalChat = () => {
-  window.dispatchEvent(new Event("open-normal-chat"));
+/* ================= GLOBAL TRIGGER ================= */
+
+/**
+ * Can be called anywhere (even outside React)
+ */
+export const triggerSupportChat = () => {
+  window.dispatchEvent(new Event("open-support-chat"));
 };

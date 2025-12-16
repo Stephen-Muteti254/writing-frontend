@@ -38,7 +38,7 @@ const RegisterWriter = () => {
         full_name: formData.fullName.trim(),
         email: formData.email.trim(),
         password: formData.password,
-        role: "pending_writer"
+        role: "writer"
       };
 
       const response = await api.post("/auth/register", payload);
@@ -69,7 +69,7 @@ const RegisterWriter = () => {
               navigate("/writer-application");
               break;
 
-            case "pending":
+            case "applied":
               toast({
                 title: "Application Under Review",
                 description: "Your application is being reviewed.",
@@ -77,7 +77,7 @@ const RegisterWriter = () => {
               navigate("/application-pending");
               break;
 
-            case "approved_no_deposit":
+            case "awaiting_initial_deposit":
               toast({
                 title: "Activation Required",
                 description: "Please contact support to activate your account.",
@@ -91,7 +91,6 @@ const RegisterWriter = () => {
               break;
           }
         } else {
-          // Fallback if not a writer (client/admin etc.)
           navigate("/login");
         }
       } else {
