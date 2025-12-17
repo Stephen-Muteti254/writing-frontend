@@ -39,10 +39,10 @@ const menuItems = [
   { title: "Client Management", url: "/admin/clients", icon: Users },
   { title: "Writer Management", url: "/admin/writers", icon: UserCheck },
   { title: "Writer Applications", url: "/admin/applications", icon: FileCheck },
+  { title: "Support Chats", url: "/admin/support", icon: MessageSquare },
   { title: "Payments", url: "/admin/payments/all", icon: DollarSign },
   { title: "System Notifications", url: "/admin/notifications", icon: Bell },
-  { title: "Support Chats", url: "/admin/support", icon: MessageSquare },
-  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  // { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
 ];
 
 export function AdminSidebar() {

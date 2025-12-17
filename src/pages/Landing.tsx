@@ -168,10 +168,6 @@ const Landing = () => {
                   <h3 className="text-xl font-semibold">{step.title}</h3>
                   <p className="text-muted-foreground">{step.description}</p>
                 </div>
-                {index < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-border" 
-                       style={{ width: 'calc(100% - 2rem)' }} />
-                )}
               </div>
             ))}
           </div>

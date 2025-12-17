@@ -36,7 +36,7 @@ const ApplicationStatusGuard = () => {
   }
 
   // Fully active writers → redirect to dashboard
-  if (status === "active") {
+  if (status === "paid_initial_deposit") {
     return <Navigate to="/writer/orders/in-progress/all" replace />;
   }
 

@@ -38,7 +38,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationContext } from "@/contexts/NotificationContext";
-import { useChatContext } from "@/contexts/ChatContext"; // Import chat context
+import { useChatContext } from "@/contexts/ChatContext";
 import { useProfileModal } from "@/contexts/ProfileModalContext";
 
 const menuItems = [

@@ -7,7 +7,7 @@ import {
   useCallback,
 } from "react";
 import api from "@/lib/api";
-import ChatPanel from "@/components/chatpanel";
+import SupportChatPanel from "@/components/SupportChatPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 /* ================= TYPES ================= */
@@ -60,7 +60,7 @@ export const SupportChatProvider = ({
   /* -------- Fetch chats -------- */
   const refreshChats = useCallback(async () => {
     try {
-      const res = await api.get("/chats", { params: { limit: 100 } });
+      const res = await api.get("/support-chats", { params: { limit: 100 } });
       const fetchedChats: Chat[] = res.data?.data?.chats || [];
 
       setChats(fetchedChats);
@@ -115,7 +115,7 @@ export const SupportChatProvider = ({
 
       {/* Global Support Chat Panel */}
       {user && currentChatId && (
-        <ChatPanel
+        <SupportChatPanel
           chatId={currentChatId}
           currentUserId={user.id}
           isOpen={isChatOpen}
