@@ -60,7 +60,7 @@ export const SupportChatProvider = ({
   /* -------- Fetch chats -------- */
   const refreshChats = useCallback(async () => {
     try {
-      const res = await api.get("/support-chats", { params: { limit: 100 } });
+      const res = await api.get("/support-chat", { params: { limit: 100 } });
       const fetchedChats: Chat[] = res.data?.data?.chats || [];
 
       setChats(fetchedChats);

@@ -40,6 +40,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useChatContext } from "@/contexts/ChatContext";
 import { useProfileModal } from "@/contexts/ProfileModalContext";
+import { triggerSupportChat } from '@/contexts/SupportChatContext';
 
 const menuItems = [
   { title: "My Orders", url: "/writer/orders/in-progress/all", base: "/writer/orders", icon: FileText },
@@ -96,7 +97,7 @@ export function DashboardSidebar() {
               </div>
               <div className="flex flex-col min-w-0">
                 <h1 className="font-semibold text-sm truncate">{user?.full_name || "User"}</h1>
-                <p className="text-xs text-muted-foreground truncate">{user?.role || "Writer"}</p>
+                {/*<p className="text-xs text-muted-foreground truncate">{user?.role || "Writer"}</p>*/}
               </div>
             </div>
           )}
@@ -185,7 +186,10 @@ export function DashboardSidebar() {
       </SidebarContent>
 
       {/* Support Footer */}
-      <div className="border-t border-border p-4 mt-auto">
+      <div
+        className="border-t border-border p-4 mt-auto cursor-pointer"
+        onClick={triggerSupportChat}
+      >
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
             <HeadphonesIcon className="h-4 w-4 text-muted-foreground" />

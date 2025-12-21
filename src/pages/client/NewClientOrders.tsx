@@ -54,6 +54,7 @@ export default function ClientOrders() {
   const [cancelReason, setCancelReason] = useState("");
   const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(orderId || null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const validTabs = [
     { slug: "in-progress", label: "In Progress" },
@@ -63,22 +64,6 @@ export default function ClientOrders() {
   ];
 
   const currentTab = validTabs.find((t) => t.slug === tab);
-
-  // Mock data generator
-  /**const generateMockOrders = (count: number, status: string): Order[] => {
-    return Array.from({ length: count }, (_, i) => ({
-      id: `order-${status}-${page}-${i}`,
-      title: `Academic Paper ${page * 10 + i + 1}`,
-      subject: ["Computer Science", "Biology", "Mathematics", "History", "Philosophy"][i % 5],
-      type: ["Essay", "Research Paper", "Thesis", "Report"][i % 4],
-      pages: Math.floor(Math.random() * 20) + 5,
-      budget: Math.floor(Math.random() * 500) + 100,
-      status: status === "in_progress" ? "in_progress" : status,
-      deadline: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      created_at: new Date(Date.now() - Math.random() * 10 * 24 * 60 * 60 * 1000).toISOString(),
-      writer_assigned: status === "in_progress" ? Math.random() > 0.5 : false,
-    }));
-  };**/
 
   // Fetch orders
   const fetchOrders = useCallback(async (reset = false) => {
@@ -154,7 +139,7 @@ export default function ClientOrders() {
   const handleCancelOrder = async () => {
     if (!cancelId) return;
 
-    const requiresReason = orderToCancel?.writer_assigned || orderToCancel?.status === "in_progress";
+    const requiresReason = orderToCancel?.writer_assigned;
 
     if (requiresReason && !cancelReason.trim()) {
       toast({
@@ -166,14 +151,18 @@ export default function ClientOrders() {
     }
 
     try {
-      // Mock API call - replace with real API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsCancelling(true);
+
+      await api.post(`/orders/${cancelId}/cancel`, {
+        reason: cancelReason || undefined,
+      });
 
       toast({
         title: "Order Cancelled",
         description: "This order has been successfully cancelled.",
       });
 
+      // Refresh list
       setOrders([]);
       setPage(1);
       fetchOrders(true);
@@ -190,6 +179,7 @@ export default function ClientOrders() {
         variant: "destructive",
       });
     } finally {
+      setIsCancelling(false);
       setCancelId(null);
       setCancelReason("");
       setOrderToCancel(null);
@@ -314,18 +304,18 @@ export default function ClientOrders() {
             <AlertDialogTitle>Cancel This Order?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to cancel this order? This action cannot be undone.
-              {(orderToCancel?.writer_assigned || orderToCancel?.status === "in_progress") && (
+              {(orderToCancel?.writer_assigned) && (
                 <>
                   <br />
                   <br />
-                  <strong>This order is already assigned to a writer.</strong> You must provide a
-                  reason for cancellation.
+                  <strong>This order has already been assigned to a writer.</strong>
+                  Cancelling at this stage affects the writer’s workflow, so a reason is required.
                 </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          {(orderToCancel?.writer_assigned || orderToCancel?.status === "in_progress") && (
+          {(orderToCancel?.writer_assigned) && (
             <div className="space-y-2">
               <Label htmlFor="cancel-reason">Cancellation Reason *</Label>
               <Textarea
@@ -341,6 +331,7 @@ export default function ClientOrders() {
 
           <AlertDialogFooter>
             <AlertDialogCancel
+              disabled={isCancelling}
               onClick={() => {
                 setCancelId(null);
                 setCancelReason("");
@@ -351,10 +342,18 @@ export default function ClientOrders() {
             </AlertDialogCancel>
 
             <AlertDialogAction
+              disabled={isCancelling}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleCancelOrder}
             >
-              Yes, Cancel Order
+              {isCancelling ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Cancelling…
+                </>
+              ) : (
+                "Yes, Cancel Order"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

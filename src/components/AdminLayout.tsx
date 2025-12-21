@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "./AdminSidebar";
 import { Outlet, useLocation } from "react-router-dom";
 
-export function AdminLayout({ noPadding }: { noPadding?: boolean }) {
+export default function AdminLayout({ noPadding }: { noPadding?: boolean }) {
   const location = useLocation();
 
   const disablePadding =

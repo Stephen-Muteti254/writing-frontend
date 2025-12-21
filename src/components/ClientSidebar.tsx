@@ -34,6 +34,7 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useChatContext } from "@/contexts/ChatContext"; // Add ChatContext
+import { triggerSupportChat } from '@/contexts/SupportChatContext';
 
 const menuItems = [
   { title: "My Orders", url: "/client/orders", icon: FileText },
@@ -175,11 +176,13 @@ export function ClientSidebar() {
 
       {/* Support Footer */}
       <div className="border-t border-border p-4 mt-auto">
-        <Button variant="outline" className="w-full" asChild>
-          <NavLink to="/client/support">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Contact Support
-          </NavLink>
+        <Button
+          variant="outline"
+          className="w-full flex items-center justify-center"
+          onClick={triggerSupportChat}
+        >
+          <MessageSquare className="h-4 w-4 mr-2" />
+          Contact Support
         </Button>
       </div>
     </Sidebar>

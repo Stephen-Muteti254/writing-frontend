@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
   noPadding?: boolean;
 }
 
-export function DashboardLayout({ noPadding }: DashboardLayoutProps) {
+export default function DashboardLayout({ noPadding }: DashboardLayoutProps) {
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const { isOpen, closeModal } = useProfileModal();

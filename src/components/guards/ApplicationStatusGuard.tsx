@@ -21,26 +21,37 @@ const ApplicationStatusGuard = () => {
   const status = user.application_status;
 
   // Writer has not applied → redirect to apply page
-  if (status === "not_applied" && location.pathname !== "/writer-onboarding/apply") {
+  if (
+    status === "not_applied" &&
+    !location.pathname.startsWith("/writer-onboarding")
+  ) {
     return <Navigate to="/writer-onboarding/apply" replace />;
   }
 
-  // Applied but not approved → redirect to pending page
-  if (status === "applied" && location.pathname !== "/writer-onboarding/pending") {
+  // Applied but not approved
+  if (
+    status === "applied" &&
+    !location.pathname.startsWith("/writer-onboarding")
+  ) {
     return <Navigate to="/writer-onboarding/pending" replace />;
   }
 
-  // Approved but not activated → redirect to approved page
-  if (status === "awaiting_initial_deposit" && location.pathname !== "/writer-onboarding/approved") {
+  // Approved but not activated
+  if (
+    status === "awaiting_initial_deposit" &&
+    !location.pathname.startsWith("/writer-onboarding")
+  ) {
     return <Navigate to="/writer-onboarding/approved" replace />;
   }
 
-  // Fully active writers → redirect to dashboard
-  if (status === "paid_initial_deposit") {
+  // Fully active → ONLY block onboarding
+  if (
+    status === "paid_initial_deposit" &&
+    location.pathname.startsWith("/writer-onboarding")
+  ) {
     return <Navigate to="/writer/orders/in-progress/all" replace />;
   }
 
-  // All checks passed → render nested routes
   return <Outlet />;
 };
 

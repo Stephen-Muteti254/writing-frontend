@@ -2,7 +2,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "./ClientSidebar";
 import { useLocation, Outlet } from "react-router-dom";
 
-export function ClientLayout({ noPadding }) {
+export default function ClientLayout({ noPadding }) {
   const location = useLocation();
 
   const disablePadding =

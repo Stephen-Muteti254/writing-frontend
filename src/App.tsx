@@ -1,16 +1,14 @@
+import * as Lazy from "@/Lazy";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { DashboardLayout } from "./components/DashboardLayout";
-import { AdminLayout } from "./components/AdminLayout";
-import { ClientLayout } from "./components/ClientLayout";
 import { PublicLayout } from "./components/PublicLayout";
-import MyOrders from "./pages/MyOrders";
+// import MyOrders from "./pages/MyOrders";
 import EditBid from "./pages/EditBid";
-import AvailableOrders from "./pages/AvailableOrders";
+// import AvailableOrders from "./pages/AvailableOrders";
 import MyBids from "./pages/MyBids";
 import Chats from "./pages/Chats";
 import Leaderboard from "./pages/Leaderboard";
@@ -18,7 +16,7 @@ import Balance from "./pages/Balance";
 import Notifications from "./pages/Notifications";
 import NotificationSettings from "./pages/NotificationSettings";
 import Profile from "./pages/Profile";
-import OrderDetails from "./pages/OrderDetails";
+// import OrderDetails from "./pages/OrderDetails";
 import PlaceBid from "./pages/PlaceBid";
 import OrderView from "./pages/OrderView";
 import NotFound from "./pages/NotFound";
@@ -33,13 +31,13 @@ import AdminSupport from "./pages/admin/AdminSupport";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminApplicationDetail from "./pages/admin/AdminApplicationDetail";
-import NewClientOrders from "./pages/client/NewClientOrders";
+// import NewClientOrders from "./pages/client/NewClientOrders";
 import OrderSubmissions from "./pages/client/NewOrderSubmissions";
 import OrderBids from "./pages/client/OrderBids";
 import ClientBids from "./pages/client/ClientBids";
-import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+// import Landing from "./pages/Landing";
+// import Login from "./pages/Login";
+// import Register from "./pages/Register";
 import RegisterClient from "./pages/RegisterClient";
 import RegisterWriter from "./pages/RegisterWriter";
 import ApplicationPending from "./pages/ApplicationPending";
@@ -62,6 +60,8 @@ import EmailVerificationGuard from "@/components/guards/EmailVerificationGuard";
 import ProfileCompletionGuard from "@/components/guards/ProfileCompletionGuard";
 import SuspensionGuard from "@/components/guards/SuspensionGuard";
 import ApplicationStatusGuard from "@/components/guards/ApplicationStatusGuard";
+import { Suspense } from "react";
+import PageLoader from "@/components/PageLoader";
 
 const queryClient = new QueryClient();
 
@@ -82,13 +82,13 @@ const App = () => (
               <ChatProvider>
               <SupportChatProvider>
                 <ProfileModalProvider>
-
+                  <Suspense fallback={<PageLoader />}>
                   <Routes>
                     {/* ================= PUBLIC ================= */}
                     <Route element={<PublicLayout />}>
-                      <Route index element={<Landing />} />
-                      <Route path="login" element={<Login />} />
-                      <Route path="register" element={<Register />} />
+                      <Route index element={<Lazy.Landing />} />
+                      <Route path="login" element={<Lazy.Login />} />
+                      <Route path="register" element={<Lazy.Register />} />
                       <Route path="register/client" element={<RegisterClient />} />
                       <Route path="register/writer" element={<RegisterWriter />} />
                       <Route path="about" element={<About />} />
@@ -117,7 +117,7 @@ const App = () => (
                     {/* ================= ADMIN ================= */}
                     <Route element={<RequireAuth requiredRole="admin" />}>
                       <Route element={<EmailVerificationGuard />}>
-                        <Route path="/admin" element={<AdminLayout />}>
+                        <Route path="/admin" element={<Lazy.AdminLayout />}>
                           <Route index element={<Navigate to="clients" replace />} />
                           <Route path="clients" element={<AdminClients />} />
                           <Route path="writers" element={<AdminWriters />} />
@@ -145,15 +145,15 @@ const App = () => (
                     {/* ================= CLIENT ================= */}
                     <Route element={<RequireAuth requiredRole="client" />}>
                       <Route element={<EmailVerificationGuard />}>
-                        <Route path="/client" element={<ClientLayout />}>
+                        <Route path="/client" element={<Lazy.ClientLayout />}>
                           <Route
                             index
                             element={<Navigate to="orders/in-progress" replace />}
                           />
 
                           {/* Orders */}
-                          <Route path="orders/:tab" element={<NewClientOrders />}>
-                            <Route path=":orderId" element={<OrderDetails />} />
+                          <Route path="orders/:tab" element={<Lazy.NewClientOrders />}>
+                            <Route path=":orderId" element={<Lazy.OrderDetails />} />
                             <Route path=":orderId/edit" element={<OrderFormPage />} />
                             <Route
                               path=":orderId/bids/:bidTab"
@@ -186,95 +186,68 @@ const App = () => (
                     {/* ================= WRITER ================= */}
                     <Route element={<RequireAuth requiredRole="writer" />}>
                       <Route element={<EmailVerificationGuard />}>
-                        <Route path="/writer">
+                        <Route path="/writer" element={<Lazy.DashboardLayout />}>
                           <Route element={<ApplicationStatusGuard />}>
-                            <Route element={<DashboardLayout />}>
-                              <Route element={<ProfileCompletionGuard />}>
-                                <Route element={<SuspensionGuard allowNavigation={false} />}>
+                            <Route element={<ProfileCompletionGuard />}>
+                              <Route element={<SuspensionGuard allowNavigation={false} />}>
 
-                                  {/* Default */}
-                                  <Route
-                                    index
-                                    element={<Navigate to="orders/in-progress/all" replace />}
-                                  />
+                                <Route
+                                  index
+                                  element={<Navigate to="available-orders/all" replace />}
+                                />
 
-                                  {/* Orders */}
-                                  <Route
-                                    path="orders/:parentTab/*"
-                                    element={<MyOrders />}
-                                  />
+                                {/* My Orders */}
+                                <Route path="orders/:parentTab/*" element={<Lazy.MyOrders />} />
 
-                                  {/* Available Orders */}
-                                  <Route
-                                    path="available-orders/:tab"
-                                    element={<AvailableOrders />}
-                                  />
-                                  <Route
-                                    path="available-orders"
-                                    element={
-                                      <Navigate to="available-orders/all" replace />
-                                    }
-                                  />
+                                {/* Available Orders */}
+                                <Route path="available-orders/:tab" element={<Lazy.AvailableOrders />} />
+                                <Route
+                                  path="available-orders"
+                                  element={<Navigate to="available-orders/all" replace />}
+                                />
 
-                                  {/* Order details */}
-                                  <Route
-                                    path="order-details/:orderId"
-                                    element={<OrderDetails />}
-                                  />
+                                {/* Order details */}
+                                <Route path="order-details/:orderId" element={<Lazy.OrderDetails />} />
 
-                                  {/* My bids */}
-                                  <Route path="my-bids/edit/:bidId" element={<EditBid />} />
-                                  <Route path="my-bids/view/:bidId" element={<EditBid />} />
-                                  <Route path="my-bids/:tab" element={<MyBids />} />
-                                  <Route
-                                    path="my-bids"
-                                    element={<Navigate to="open" replace />}
-                                  />
+                                {/* My Bids */}
+                                <Route path="my-bids/edit/:bidId" element={<EditBid />} />
+                                <Route path="my-bids/view/:bidId" element={<EditBid />} />
+                                <Route path="my-bids/:tab" element={<MyBids />} />
+                                <Route
+                                  path="my-bids"
+                                  element={<Navigate to="open" replace />}
+                                />
 
-                                  {/* Actions */}
-                                  <Route
-                                    path="place-bid/:orderId"
-                                    element={<PlaceBid />}
-                                  />
-                                  <Route
-                                    path="order-view/:orderId"
-                                    element={<OrderView />}
-                                  />
-                                  <Route
-                                    path="submit-work/:orderId"
-                                    element={<SubmitWork />}
-                                  />
-                                  <Route
-                                    path="review-submission/:submissionId"
-                                    element={<ReviewSubmission />}
-                                  />
+                                {/* Actions */}
+                                <Route path="place-bid/:orderId" element={<PlaceBid />} />
+                                <Route path="order-view/:orderId" element={<OrderView />} />
+                                <Route path="submit-work/:orderId" element={<Lazy.SubmitWork />} />
+                                <Route
+                                  path="review-submission/:submissionId"
+                                  element={<ReviewSubmission />}
+                                />
 
-                                  {/* Extras */}
-                                  <Route path="chats" element={<Chats />} />
-                                  <Route path="leaderboard" element={<Leaderboard />} />
-                                  <Route path="balance/:tab" element={<Balance />} />
-                                  <Route
-                                    path="notifications"
-                                    element={<Notifications />}
-                                  />
-                                  <Route
-                                    path="notifications-settings"
-                                    element={<NotificationSettings />}
-                                  />
-                                  <Route path="profile" element={<Profile />} />
+                                {/* Extras */}
+                                <Route path="chats" element={<Chats />} />
+                                <Route path="leaderboard" element={<Leaderboard />} />
+                                <Route path="balance/:tab" element={<Balance />} />
+                                <Route path="notifications" element={<Notifications />} />
+                                <Route
+                                  path="notifications-settings"
+                                  element={<NotificationSettings />}
+                                />
+                                <Route path="profile" element={<Profile />} />
 
-                                  <Route path="*" element={<NotFound />} />
+                                <Route path="*" element={<NotFound />} />
 
-                                </Route>
                               </Route>
                             </Route>
                           </Route>
                         </Route>
                       </Route>
                     </Route>
-
                   </Routes>
-
+                </Suspense>
                 </ProfileModalProvider>
               </SupportChatProvider>
               </ChatProvider>

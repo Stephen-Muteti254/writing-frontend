@@ -73,34 +73,23 @@ export default function PlaceBid() {
       return;
     }
 
-    if (order && parseFloat(bidAmount) > order.budget) {
+    if (order && parseFloat(bidAmount) < order.budget) {
       toast({
         title: "Invalid Bid Amount",
-        description: "Your bid cannot exceed the client's budget",
+        description: "Your bid cannot be lower than the displayed budget",
         variant: "destructive",
       });
       return;
     }
 
     if (order) {
-      const writerDate = new Date(deadline);
       const clientDate = new Date(order.deadline);
-
-      if (writerDate > clientDate) {
-        toast({
-          title: "Invalid Deadline",
-          description: "Your proposed deadline cannot exceed the client's deadline.",
-          variant: "destructive",
-        });
-        return;
-      }
     }
 
     setIsSubmitting(true);
     try {
       const payload = {
         amount: parseFloat(bidAmount),
-        deadline,
         message,
       };
 
@@ -186,46 +175,13 @@ export default function PlaceBid() {
                       className="pl-9"
                       value={bidAmount}
                       onChange={(e) => setBidAmount(e.target.value)}
-                      min="1"
-                      max={order.budget}
+                      min={order.budget}
                       step="0.01"
                       required
                     />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Client's budget: ${order.budget} • Suggested: ${suggestedBid}
-                  </p>
-                </div>
-
-                {/* Deadline */}
-                <div className="space-y-2">
-                  <Label htmlFor="deadline">Proposed Deadline *</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="deadline"
-                      type="datetime-local"
-                      className="pl-9"
-                      value={deadline}
-                      onChange={(e) => setDeadline(e.target.value)}
-                      min={new Date().toISOString().slice(0, 16)}
-                      max={new Date(order.deadline).toISOString().slice(0, 16)}
-                      required
-                    />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {/*{new Date(order.deadline).toLocaleDateString()}*/}
-
-                    Must be on or before: 
-                    {order.deadline 
-                      ? new Date(order.deadline).toLocaleString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "—"}
+                    Minimum payable amount: ${order.budget}
                   </p>
                 </div>
 

@@ -128,7 +128,7 @@ export default function MyOrders() {
         <h1 className="text-3xl font-bold text-foreground">My Orders</h1>
       </div>
 
-      <Card className="border-0 h-[calc(100dvh-11rem)] overflow-hidden relative">
+      <Card className="p-0 border-0 h-[calc(100dvh-11rem)] overflow-hidden relative">
         {loadingInitial && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-20">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -137,7 +137,7 @@ export default function MyOrders() {
 
         <CardContent className="p-0 h-full flex flex-col">
           {/* Parent Tabs + Filters */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-3 py-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-0">
             <div className="flex">
               {["in-progress", "completed", "cancelled"].map(tab => (
                 <button
@@ -206,7 +206,6 @@ export default function MyOrders() {
             <Tabs
               value={subTab}
               onValueChange={value => navigate(`/writer/orders/in-progress/${value}`)}
-              className="px-3 py-2"
             >
               <TabsList>
                 <TabsTrigger value="all">All</TabsTrigger>

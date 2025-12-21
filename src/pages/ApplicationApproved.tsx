@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, Mail } from "lucide-react";
+import { CheckCircle2, AlertCircle, Mail, HeadphonesIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { triggerSupportChat } from '@/contexts/SupportChatContext';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -70,7 +70,20 @@ const ApplicationApproved = () => {
               </ul>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div
+              className="flex items-center justify-center gap-3 cursor-pointer"
+              onClick={triggerSupportChat}
+            >
+              <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                <HeadphonesIcon className="h-4 w-4 text-muted-foreground" />
+              </div>
+
+              <p className="text-sm font-medium text-center">
+                Contact Support
+              </p>
+            </div>
+
+            {/*<div className="flex flex-col gap-2">
               <Button
                 className="w-full"
                 onClick={() => triggerSupportChat()}
@@ -78,7 +91,7 @@ const ApplicationApproved = () => {
                 <Mail className="mr-2 h-4 w-4" />
                 Contact Support
               </Button>
-            </div>
+            </div>*/}
 
             <div className="text-center">
               <p className="text-xs text-muted-foreground">

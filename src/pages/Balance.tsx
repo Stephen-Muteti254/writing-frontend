@@ -437,10 +437,10 @@ export default function Balance() {
       </div>
 
       {/* MAIN */}
-      <Card className="border-0 h-[calc(100dvh-6.5rem)] overflow-hidden mt-3">
+      <Card className="p-0 border-0 h-[calc(100dvh-6.5rem)] overflow-hidden mt-3">
         <CardContent className="p-0 h-full flex flex-col">
           {/* TABS */}
-          <div className="flex items-center justify-between p-2 px-3">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex gap-3">
               {TABS.map((t) => (
                 <button
@@ -474,7 +474,7 @@ export default function Balance() {
             onScroll={handleScroll}
             className="flex-1 pr-2"
           >
-            <div className="p-2 space-y-2">
+            <div className="space-y-2">
 
               {/* Transactions */}
               {tab === "transactions" &&
@@ -519,7 +519,7 @@ export default function Balance() {
               {tab === "withdrawals" &&
                 (withdrawals.length > 0 ? (
                   withdrawals.map((w) => (
-                    <div key={w.id} className="p-4 rounded-md bg-accent/40 flex justify-between">
+                    <div key={w.id} className="rounded-md bg-accent/40 flex justify-between p-3">
                       <div>
                         <p className="font-medium">Withdrawal</p>
                         <p className="text-sm text-muted-foreground">

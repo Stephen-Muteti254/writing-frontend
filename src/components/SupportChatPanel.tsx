@@ -13,6 +13,15 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
+import { useFileViewer } from "@/hooks/useFileViewer";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Message {
   id: string;
@@ -25,12 +34,14 @@ interface Message {
   content: string;
   sent_at: string;
   is_read: boolean;
+  files: pendingFiles,
   attachments: {
     id: string;
     url: string;
     filename: string;
     mime: string;
   }[];
+  files?: File[];
   sending?: boolean;
   failed?: boolean;
 }
@@ -62,12 +73,35 @@ export function SupportChatPanel({
   const [chatId, setChatId] = useState<string | undefined>(initialChatId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [warning, setWarning] = useState<Warning | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const MAX_FILES = 5;
+  const MAX_FILE_SIZE_MB = 5;
+  const ALLOWED_TYPES = [
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+    "application/pdf",
+  ];
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    url: string;
+    mime: string;
+    name: string;
+  } | null>(null);
+
+  const {
+    previewFile,
+    openPreview,
+    closePreview,
+    downloadFile,
+  } = useFileViewer();
 
   // -------------------------
   // Auto-create/get chat
@@ -75,14 +109,22 @@ export function SupportChatPanel({
   useEffect(() => {
     const initChat = async () => {
       try {
+        setInitializing(true);
+
         const res = await api.post("/support-chat");
-        console.log(res.data);
-        setChatId(res.data.chat.id);
-        fetchMessages(res.data.chat.id);
+        const id = res.data.chat.id;
+
+        setChatId(id);
+
+        // DO NOT fetch messages here
+        // Let the next effect handle it
       } catch (err) {
         console.error("Failed to get/create support chat", err);
+      } finally {
+        setInitializing(false);
       }
     };
+
     initChat();
   }, []);
 
@@ -90,10 +132,25 @@ export function SupportChatPanel({
   // Fetch messages
   // -------------------------
   useEffect(() => {
-    if (chatId && isOpen) {
-      fetchMessages();
-    }
+    if (!chatId || !isOpen) return;
+
+    const loadMessages = async () => {
+      try {
+        setMessagesLoading(true);
+
+        const res = await api.get(`/support-chat/${chatId}/messages`);
+        setMessages(res.data.messages || []);
+        setWarning(res.data.warning || null);
+      } catch (err) {
+        console.error("Failed to fetch messages:", err);
+      } finally {
+        setMessagesLoading(false);
+      }
+    };
+
+    loadMessages();
   }, [chatId, isOpen]);
+
 
   useEffect(() => {
     scrollToBottom();
@@ -101,21 +158,6 @@ export function SupportChatPanel({
 
   const scrollToBottom = () => {
     if (scrollRef.current) scrollRef.current.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const fetchMessages = async () => {
-    if (!chatId) return;
-    try {
-      setLoading(true);
-      const res = await api.get(`/support-chat/${chatId}/messages`);
-      console.log(res.data);
-      setMessages(res.data.messages || []);
-      setWarning(res.data.warning || null);
-    } catch (err) {
-      console.error("Failed to fetch messages:", err);
-    } finally {
-      setLoading(false);
-    }
   };
 
   // -------------------------
@@ -174,6 +216,7 @@ export function SupportChatPanel({
   // -------------------------
   const retryMessage = async (msg: Message) => {
     if (!chatId) return;
+
     setMessages(prev =>
       prev.map(m => (m.id === msg.id ? { ...m, sending: true, failed: false } : m))
     );
@@ -181,24 +224,21 @@ export function SupportChatPanel({
     try {
       const form = new FormData();
       form.append("content", msg.content);
-      // Attach real files if needed (skip blob URLs)
-      msg.attachments?.forEach(a => {
-        if (a.url.startsWith("blob:")) return;
-        // implement real file upload here if applicable
-      });
+
+      msg.files?.forEach(f => form.append("files", f));
 
       const res = await api.post(`/support-chat/${chatId}/messages`, form, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      const realMessage = res.data.data;
-      setMessages(prev => prev.map(m => (m.id === msg.id ? realMessage : m)));
+      setMessages(prev => prev.map(m => (m.id === msg.id ? res.data : m)));
     } catch {
       setMessages(prev =>
         prev.map(m => (m.id === msg.id ? { ...m, sending: false, failed: true } : m))
       );
     }
   };
+
 
   // -------------------------
   // Format utilities
@@ -223,10 +263,38 @@ export function SupportChatPanel({
     return groups;
   };
 
+
   const renderAttachment = (a: Message["attachments"][0]) => {
-    if (a.mime.startsWith("image/")) return <img src={a.url} alt={a.filename} className="max-h-40 rounded-lg border mt-2" />;
-    return <a href={a.url} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center gap-2 text-xs underline">📎 {a.filename}</a>;
+    const isImage = a.mime.startsWith("image/");
+    const isPdf = a.mime === "application/pdf";
+
+    const handleClick = () => {
+      if (isImage || isPdf) {
+        openPreview(a.url, a.filename);
+      } else {
+        downloadFile(a.url, a.filename);
+      }
+    };
+
+    return (
+      <button
+        onClick={handleClick}
+        className="mt-1 w-full flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1 text-left text-xs
+                   hover:bg-muted transition-colors group"
+      >
+        {/*<Paperclip className="h-4 w-4 text-muted-foreground group-hover:text-primary" />*/}
+
+        <span className="flex-1 truncate underline underline-offset-2 text-primary/70 group-hover:text-primary">
+          {a.filename}
+        </span>
+
+        <span className="text-[10px] text-muted-foreground">
+          {isImage ? "Image" : isPdf ? "PDF" : "File"}
+        </span>
+      </button>
+    );
   };
+
 
   if (!isOpen) return null;
   const messageGroups = groupMessagesByDate(messages);
@@ -255,10 +323,10 @@ export function SupportChatPanel({
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
-        {loading ? (
-          <div className="flex items-center justify-center h-32">
+        {initializing || messagesLoading ? (
+          <div className="flex items-center justify-center h-full">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          </div>          
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-center">
             <MessageCircle className="h-10 w-10 text-muted-foreground/30 mb-2" />
@@ -287,7 +355,7 @@ export function SupportChatPanel({
 
                   <div className={cn("max-w-[75%] group", isOwn ? "items-end" : "items-start")}>
                     {!isOwn && showAvatar && <p className="text-xs text-muted-foreground mb-1 ml-1">{msg.sender.name}</p>}
-                    <div className={cn("rounded-2xl px-4 py-2 text-sm relative", isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted text-foreground rounded-bl-md")}>
+                    <div className={cn("rounded-xl px-4 py-2 text-sm relative", isOwn ? "bg-primary text-primary-foreground rounded-br-md" : "bg-muted text-foreground rounded-bl-md")}>
                       {msg.content && <p className="whitespace-pre-wrap break-words">{msg.content}</p>}
                       {msg.attachments?.map(att => <div key={att.id}>{renderAttachment(att)}</div>)}
                       {msg.sending && <Loader2 className="h-3 w-3 animate-spin absolute bottom-1 right-2 opacity-80" />}
@@ -311,6 +379,9 @@ export function SupportChatPanel({
             {pendingFiles.map(f => <span key={f.name} className="text-xs bg-muted px-2 py-1 rounded">{f.name}</span>)}
           </div>
         )}
+        {fileError && (
+          <p className="text-xs text-destructive mb-2">{fileError}</p>
+        )}
         <div className="flex gap-2">
           <Button type="button" variant="ghost" size="icon" disabled={sending || pendingFiles.length > 5} onClick={() => document.getElementById("chat-files")?.click()}>
             <Paperclip className="h-4 w-4 text-muted-foreground" />
@@ -322,10 +393,95 @@ export function SupportChatPanel({
         </div>
       </form>
 
-      <input type="file" multiple hidden id="chat-files" onChange={e => {
-        if (!e.target.files) return;
-        setPendingFiles(prev => [...prev, ...Array.from(e.target.files)]);
-      }} />
+      <input
+        type="file"
+        multiple
+        hidden
+        id="chat-files"
+        onChange={e => {
+          if (!e.target.files) return;
+
+          const incoming = Array.from(e.target.files);
+          const errors: string[] = [];
+          const valid: File[] = [];
+
+          incoming.forEach(file => {
+            if (!ALLOWED_TYPES.includes(file.type)) {
+              errors.push(`${file.name}: unsupported file type`);
+              return;
+            }
+            if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+              errors.push(`${file.name}: exceeds ${MAX_FILE_SIZE_MB}MB`);
+              return;
+            }
+            valid.push(file);
+          });
+
+          if (pendingFiles.length + valid.length > MAX_FILES) {
+            errors.push(`Maximum ${MAX_FILES} files allowed`);
+          }
+
+          if (errors.length) {
+            setFileError(errors.join(", "));
+            return;
+          }
+
+          setFileError(null);
+          setPendingFiles(prev => [...prev, ...valid]);
+        }}
+      />
+
+      <Dialog open={!!previewFile} onOpenChange={closePreview}>
+        <DialogContent
+          forceMount
+          className="z-50 m-0 p-0 gap-0 w-full h-full max-w-none bg-background border-none rounded-none overflow-hidden flex flex-col"
+        >
+          <DialogHeader className="flex items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 py-2 shrink-0">
+            <DialogTitle className="text-lg font-semibold">
+              {previewFile?.name || "Preview"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 flex items-center justify-center bg-muted/10 relative">
+            {previewFile?.type === "loading" && (
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            )}
+
+            {previewFile?.type === "pdf" && previewFile.url && (
+              <iframe
+                src={`${previewFile.url}#toolbar=0`}
+                className="w-full h-full border-0 bg-white"
+              />
+            )}
+
+            {previewFile?.type === "image" && previewFile.url && (
+              <img
+                src={previewFile.url}
+                alt={previewFile.name}
+                className="max-w-full max-h-full object-contain"
+              />
+            )}
+
+            {(previewFile?.type === "document" ||
+              previewFile?.type === "other") && (
+              <div className="text-center space-y-3">
+                <p className="text-muted-foreground">
+                  Preview unavailable for this file type.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    downloadFile(previewFile.rawUrl, previewFile.name)
+                  }
+                >
+                  Download
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

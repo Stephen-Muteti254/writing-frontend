@@ -16,26 +16,46 @@ import {
   Loader2,
 } from "lucide-react";
 import { useSupportChat } from "@/contexts/SupportChatContext";
+import api from "@/lib/api";
+import { useFileViewer } from "@/hooks/useFileViewer";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface Message {
   id: string;
-  sender: "user" | "admin";
-  text: string;
-  timestamp: string;
+  sender: "user" | "admin" | { role: string };
+  content: string;
+  timestamp?: string;
+  sending?: boolean;
+  failed?: boolean;
+  attachments?: {
+    id: string;
+    url: string;
+    filename: string;
+    mime: string;
+  }[];
 }
+
 
 interface SupportChat {
   id: string;
-  userId: string;
-  userName: string;
-  userType: "client" | "writer";
-  subject: string;
-  status: "open" | "resolved" | "pending";
-  priority: "low" | "medium" | "high";
-  lastMessage: string;
-  lastMessageTime: string;
-  messages: Message[];
+  user: {
+    id: string;
+    name: string;
+    role: "client" | "writer";
+  };
+  last_message: string;
+  last_message_at: string;
+  unread_count: number;
+  status: "open" | "resolved";
 }
+
 
 export default function AdminSupport() {
   const { toast } = useToast();
@@ -48,10 +68,22 @@ export default function AdminSupport() {
   const scrollAreaRef = useRef<any>(null);
   const selectedChat = chats.find(c => c.id === selectedChatId) || null;
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [loadingChats, setLoadingChats] = useState(false);
+  const [hasNextPage, setHasNextPage] = useState(true);
+  const chatListRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  const {
+    previewFile,
+    openPreview,
+    closePreview,
+    downloadFile,
+  } = useFileViewer();
 
   const filteredChats = chats.filter(
     (chat) =>
-      chat.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      chat.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       chat.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       chat.id.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -120,8 +152,95 @@ export default function AdminSupport() {
   };
 
   useEffect(() => {
-    refreshChats();
+    loadChats(1);
   }, []);
+
+
+  useEffect(() => {
+    const viewport = scrollAreaRef.current?.getElement?.();
+    const end = messagesEndRef.current;
+    if (!viewport || !end) return;
+
+    requestAnimationFrame(() => {
+      viewport.scrollTop = viewport.scrollHeight;
+    });
+  }, [messages, selectedChatId]);
+
+
+
+  useEffect(() => {
+    if (!scrollAreaRef.current) return;
+    const viewport = scrollAreaRef.current.getElement();
+    if (!viewport) return;
+    requestAnimationFrame(() => viewport.scrollTop = viewport.scrollHeight);
+  }, [messages, selectedChatId]);
+
+
+
+  const handleScroll = () => {
+    const el = chatListRef.current;
+    if (!el || loadingChats || !hasNextPage) return;
+
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+      loadChats(page + 1);
+    }
+  };
+
+
+  const loadChats = async (nextPage = 1) => {
+    if (loadingChats || !hasNextPage) return;
+
+    setLoadingChats(true);
+    try {
+      const res = await api.get("/support-chat", {
+        params: { page: nextPage, limit: 20 }
+      });
+
+      console.log(res.data);
+
+      const newChats = res.data.chats || [];
+      setChats(prev => nextPage === 1 ? newChats : [...prev, ...newChats]);
+
+      const pagination = res.data?.data?.pagination;
+      setHasNextPage(pagination?.has_next ?? false);
+      setPage(nextPage);
+    } catch (err) {
+      toast({ title: "Error loading chats", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingChats(false);
+    }
+  };
+
+
+  const renderAttachment = (att: Message["attachments"][0]) => {
+    const isImage = att.mime.startsWith("image/");
+    const isPdf = att.mime === "application/pdf";
+
+    const handleClick = () => {
+      if (isImage || isPdf) {
+        openPreview(att.url, att.filename);
+      } else {
+        downloadFile(att.url, att.filename);
+      }
+    };
+
+    return (
+      <button
+        key={att.id}
+        onClick={handleClick}
+        className="mt-1 w-full flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1 text-left text-xs hover:bg-muted transition-colors"
+      >
+        <span className="flex-1 truncate underline underline-offset-2 text-primary/70">
+          {att.filename}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {isImage ? "Image" : isPdf ? "PDF" : "File"}
+        </span>
+      </button>
+    );
+  };
+
+
 
   const fetchMessages = async (chatId: string) => {
     setLoadingMessages(true);
@@ -170,8 +289,14 @@ export default function AdminSupport() {
         </CardHeader>
 
         <CardContent className="flex-1 p-0 overflow-hidden">
-          <ScrollArea className="h-full">
+          <ScrollArea ref={chatListRef} onScroll={handleScroll} className="h-full">
             <div className="space-y-1 p-3">
+              {loadingChats && (
+                <div className="text-center text-muted-foreground py-2">
+                  <Loader2 className="h-4 w-4 animate-spin inline-block mr-2" />
+                  Loading chats...
+                </div>
+              )}
               {chats.map(chat => (
                 <div
                   key={chat.id}
@@ -183,7 +308,12 @@ export default function AdminSupport() {
                   }`}
                 >
                   <div className="flex justify-between">
-                    <p className="font-medium">{chat.user_name}</p>
+                    <p className="font-medium">
+                      {chat.user.name}
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        ({chat.user.role})
+                      </span>
+                    </p>
                     {chat.unread_count > 0 && (
                       <Badge variant="destructive">{chat.unread_count}</Badge>
                     )}
@@ -197,82 +327,134 @@ export default function AdminSupport() {
       </Card>
 
       {/* Chat Messages */}
-      <Card className="flex flex-col flex-1 rounded-none border-0">
+      <Card className="flex-1 flex flex-col rounded-none border-0 overflow-hidden min-h-0">
         {selectedChat ? (
           <>
-            <CardHeader className="pb-3 border-b">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{selectedChat.subject}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedChat.userName} ({selectedChat.userType})
-                  </p>
-                </div>
-                {selectedChat.status !== "resolved" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleResolveChat(selectedChat.id)}
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Resolve
-                  </Button>
-                )}
+            {/* Header */}
+            <CardHeader className="border-b shrink-0">
+              <div>
+                <CardTitle>{selectedChat.subject}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {selectedChat.user.name} ({selectedChat.user.role})
+                </p>
               </div>
             </CardHeader>
 
-            <CardContent className="flex-1 p-0 flex flex-col">
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  {messages.map(m => {
-                    const isAdmin = m.sender?.role === "admin";
+            {/* Main content area */}
+            <div className="flex flex-col flex-1 min-h-0">
+              <ScrollArea ref={scrollAreaRef} className="flex-1 min-h-0 p-4">
+                {loadingMessages ? (
+                  <div className="flex justify-center items-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    Loading messages...
+                  </div>
+                ) : messages.length === 0 ? (
+                  <p className="text-center text-muted-foreground">No messages</p>
+                ) : (
+                  <div className="space-y-4">
+                    {messages.map((m) => {
+                      const isAdmin = m.sender?.role === "admin";
+                      return (
+                        <div key={m.id} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
+                          {/*<div className={`p-3 rounded-lg max-w-[70%] ${
+                            isAdmin ? "bg-primary text-primary-foreground" : "bg-muted"
+                          }`}>
+                            <p>{m.content}</p>
+                            {m.sending && <Loader2 className="h-3 w-3 animate-spin mt-1" />}
+                          </div>*/}
+                          <div className={`p-3 rounded-lg max-w-[70%] ${isAdmin ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                            {m.content && <p className="whitespace-pre-wrap break-words">{m.content}</p>}
+                            {m.attachments?.map(renderAttachment)}
+                            {m.sending && <Loader2 className="h-3 w-3 animate-spin mt-1" />}
+                            {m.failed && <p className="text-[10px] text-red-400 mt-1">Failed to send</p>}
+                          </div>
 
-                    return (
-                      <div key={m.id} className={`flex ${isAdmin ? "justify-end" : "justify-start"}`}>
-                        <div className={`p-3 rounded-lg max-w-[70%] ${
-                          isAdmin ? "bg-primary text-primary-foreground" : "bg-muted"
-                        }`}>
-                          <p>{m.content}</p>
-                          {m.sending && <Loader2 className="h-3 w-3 animate-spin mt-1" />}
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
               </ScrollArea>
 
-              <Separator />
-
-              <div className="border-t p-4">
-                <div className="flex items-center space-x-2">
-                  <Textarea
-                    placeholder="Type your reply..."
-                    rows={2}
-                    value={replyMessage}
-                    onChange={(e) => setReplyMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendReply();
-                      }
-                    }}
-                  />
-                  <Button onClick={handleSendReply} disabled={!replyMessage.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
-                </div>
+              {/* Input bar */}
+              <div className="border-t p-4 flex gap-2 shrink-0">
+                <Textarea
+                  placeholder="Type your reply..."
+                  rows={2}
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendReply();
+                    }
+                  }}
+                />
+                <Button onClick={handleSendReply} disabled={!replyMessage.trim()}>
+                  <Send className="h-4 w-4" />
+                </Button>
               </div>
-            </CardContent>
+            </div>
           </>
         ) : (
           <CardContent className="flex items-center justify-center h-full">
-            <div className="text-center text-muted-foreground">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Select a chat to view messages</p>
-            </div>
+            <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Select a chat to view messages</p>
           </CardContent>
         )}
       </Card>
+      <Dialog open={!!previewFile} onOpenChange={closePreview}>
+        <DialogContent
+          forceMount
+          className="z-50 m-0 p-0 gap-0 w-full h-full max-w-none bg-background border-none rounded-none overflow-hidden flex flex-col"
+        >
+          <DialogHeader className="flex items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 py-2 shrink-0">
+            <DialogTitle className="text-lg font-semibold">
+              {previewFile?.name || "Preview"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 flex items-center justify-center bg-muted/10 relative">
+            {previewFile?.type === "loading" && (
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            )}
+
+            {previewFile?.type === "pdf" && previewFile.url && (
+              <iframe
+                src={`${previewFile.url}#toolbar=0`}
+                className="w-full h-full border-0 bg-white"
+              />
+            )}
+
+            {previewFile?.type === "image" && previewFile.url && (
+              <img
+                src={previewFile.url}
+                alt={previewFile.name}
+                className="max-w-full max-h-full object-contain"
+              />
+            )}
+
+            {(previewFile?.type === "document" ||
+              previewFile?.type === "other") && (
+              <div className="text-center space-y-3">
+                <p className="text-muted-foreground">
+                  Preview unavailable for this file type.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    downloadFile(previewFile.rawUrl, previewFile.name)
+                  }
+                >
+                  Download
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

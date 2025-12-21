@@ -154,14 +154,14 @@ export default function MyBids() {
         <h1 className="text-3xl font-bold text-foreground">My Bids</h1>
       </div>
 
-      <Card className="border-0 h-[calc(100dvh-11rem)] overflow-hidden relative">
+      <Card className="p-0 border-0 h-[calc(100dvh-11rem)] overflow-hidden relative">
         {initialLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
 
-        <CardContent className="p-3 h-full flex flex-col">
+        <CardContent className="p-0 h-full flex flex-col">
           {/* Tabs + Filters */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-border">
             <div className="flex border-b sm:border-0 border-border">
@@ -209,7 +209,7 @@ export default function MyBids() {
 
           {/* Scrollable Table */}
           <ScrollArea ref={scrollRef} onScroll={handleScroll} className="flex-1">
-            <div className="p-3">
+            <div className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>

@@ -371,7 +371,7 @@ export default function Chats() {
       <Card className="flex-1 rounded-none flex flex-col overflow-hidden min-h-0">
         {selectedChat ? (
           <>
-            <CardHeader className="border-b shrink-0">
+            <CardHeader className="border-b shrink-0 p-4">
               {user?.role != "client" ? (
                 <>
                   {/* WRITER VIEW */}
@@ -475,7 +475,7 @@ export default function Chats() {
                             )}
                             
                             <div
-                              className={`relative p-3 rounded-lg ${
+                              className={`relative py-2 px-3 rounded-lg ${
                                 isMine ? "bg-primary text-primary-foreground" : "bg-muted"
                               } ${deletingMessageIds[m.id] ? "opacity-50" : ""}`}
                             >
