@@ -90,6 +90,16 @@ export default function EditBid() {
     }
   }, [bidId]);
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
   const fetchBidDetails = async () => {
     try {
       setLoading(true);
@@ -133,6 +143,36 @@ export default function EditBid() {
       setLoading(false);
     }
   };
+
+  function formatDeadlineRemaining(deadlineIso: string): string {
+    const deadline = new Date(deadlineIso);
+    const now = new Date();
+
+    const diffMs = deadline.getTime() - now.getTime();
+
+    if (isNaN(deadline.getTime())) return "Invalid deadline";
+    if (diffMs <= 0) return "Expired";
+
+    const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+
+    if (days > 0) {
+      return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
+    }
+
+    return `${hours} hour${hours !== 1 ? "s" : ""} left`;
+  }
+
+
+  function deadlineClass(deadlineIso: string) {
+    const diffMs = new Date(deadlineIso).getTime() - Date.now();
+    const hoursLeft = diffMs / (1000 * 60 * 60);
+
+    if (hoursLeft <= 6) return "text-red-600";
+    if (hoursLeft <= 24) return "text-orange-600";
+    return "text-amber-600";
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     if (viewOnly) return null;
@@ -234,16 +274,6 @@ export default function EditBid() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
@@ -270,7 +300,7 @@ export default function EditBid() {
     );
   }
 
-  const originalAmount = bid.bid_amount || 0;
+  const originalAmount = bid.amount || 0;
   const amountChanged = parseFloat(bidAmount) !== originalAmount;
   const statusConfig = getStatusConfig(bid.status);
   const StatusIcon = statusConfig.icon;
@@ -388,18 +418,20 @@ export default function EditBid() {
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" /> Deadline
                     </p>
-                    <p className="font-semibold text-foreground text-sm">
-                      {formatDate(order.deadline)}
-                    </p>
+                    {order.deadline && (
+                      <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
+                        {formatDeadlineRemaining(order.deadline)}
+                      </p>
+                    )}
                   </div>
-                  {order.client && (
+                  {/*{order.client && (
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground flex items-center gap-1">
                         <User className="h-3 w-3" /> Client
                       </p>
                       <p className="font-semibold text-foreground">{order.client.name}</p>
                     </div>
-                  )}
+                  )}*/}
                 </div>
               </CardContent>
             </Card>
@@ -420,18 +452,15 @@ export default function EditBid() {
                   <div className="bg-muted/50 rounded-xl p-4 space-y-1">
                     <p className="text-sm text-muted-foreground">Bid Amount</p>
                     <p className="text-3xl font-bold text-primary">${originalAmount}</p>
-                    {originalAmount < order.budget && (
-                      <Badge variant="secondary" className="bg-green-500/10 text-green-600 text-xs">
-                        {Math.round((1 - originalAmount / order.budget) * 100)}% below budget
-                      </Badge>
-                    )}
                   </div>
                   {deadline && (
                     <div className="bg-muted/50 rounded-xl p-4 space-y-1">
                       <p className="text-sm text-muted-foreground">Proposed Deadline</p>
-                      <p className="text-lg font-semibold text-foreground">
-                        {formatDate(deadline)}
-                      </p>
+                      {order.deadline && (
+                        <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
+                          {formatDeadlineRemaining(order.deadline)}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

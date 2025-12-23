@@ -57,6 +57,7 @@ export default function MyBids() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [cancelId, setCancelId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const loadingRef = useRef(false);
   const nextPageRef = useRef(1);
@@ -102,9 +103,11 @@ export default function MyBids() {
   };
 
   const handleCancelBid = async () => {
-    if (!cancelId) return;
+    if (!cancelId || cancelling) return;
 
     try {
+      setCancelling(true);
+
       await api.delete(`/bids/${cancelId}`);
 
       toast({
@@ -123,6 +126,7 @@ export default function MyBids() {
         variant: "destructive",
       });
     } finally {
+      setCancelling(false);
       setCancelId(null);
     }
   };
@@ -222,7 +226,15 @@ export default function MyBids() {
 
               <TableBody>
                 {bids.map((bid) => (
-                  <TableRow key={bid.id}>
+                  <TableRow
+                    key={bid.id}
+                    className="cursor-pointer"
+                    onClick={() =>
+                      navigate(`/writer/my-bids/view/${bid.id}`, {
+                        state: { viewOnly: true }
+                      })
+                    }
+                  >
                     <TableCell>
                       <div>
                         <p className="font-medium">{bid.order_title}</p>
@@ -232,7 +244,7 @@ export default function MyBids() {
                     <TableCell>
                       <div className="flex items-center text-sm">
                         <DollarSign className="h-4 w-4 mr-1" /> {bid.amount}
-                        <span className="text-muted-foreground ml-1">/ {bid.budget}</span>
+                        {/*<span className="text-muted-foreground ml-1">/ {bid.budget}</span>*/}
                       </div>
                     </TableCell>
                     <TableCell><StatusBadge status={bid.status} /></TableCell>
@@ -244,11 +256,12 @@ export default function MyBids() {
                           size="sm"
                           variant="outline"
                           className="rounded-none border-0 shadow-none"
-                          onClick={() =>
+                          onClick={() =>{
+                            e.stopPropagation();
                             navigate(`/writer/my-bids/view/${bid.id}`, {
                               state: { viewOnly: true }
                             })
-                          }
+                          }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -308,16 +321,30 @@ export default function MyBids() {
             </AlertDialogHeader>
 
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => setCancelId(null)}>
+              <AlertDialogCancel
+                disabled={cancelling}
+                onClick={() => setCancelId(null)}
+              >
                 Keep Bid
               </AlertDialogCancel>
 
               <AlertDialogAction
-                className="text-red-600"
                 onClick={handleCancelBid}
+                disabled={cancelling}
                 variant="outline"
+                className="text-red-600 flex items-center gap-2"
               >
-                Yes, Cancel Bid
+                {cancelling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cancelling…
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-4 w-4" />
+                    Yes, Cancel Bid
+                  </>
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -405,7 +405,15 @@ export default function AvailableOrders() {
             {orders.map((order) => (
               <Card
                 key={order.id}
-                className="hover:shadow-md transition-shadow cursor-pointer"
+                className="
+                  transition
+                  cursor-pointer
+                  hover:bg-muted/40
+                  hover:shadow-md
+                  focus-within:bg-muted/40
+                  focus-within:shadow-md
+                  border
+                "
                 onClick={() => navigate(`/writer/order-details/${order.id}`)}
               >
                 <CardHeader className="p-2 pl-6 pb-1">

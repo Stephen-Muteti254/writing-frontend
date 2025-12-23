@@ -60,6 +60,37 @@ export default function PlaceBid() {
   }, [orderId]);
 
 
+  function formatDeadlineRemaining(deadlineIso: string): string {
+    const deadline = new Date(deadlineIso);
+    const now = new Date();
+
+    const diffMs = deadline.getTime() - now.getTime();
+
+    if (isNaN(deadline.getTime())) return "Invalid deadline";
+    if (diffMs <= 0) return "Expired";
+
+    const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+
+    if (days > 0) {
+      return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
+    }
+
+    return `${hours} hour${hours !== 1 ? "s" : ""} left`;
+  }
+
+
+  function deadlineClass(deadlineIso: string) {
+    const diffMs = new Date(deadlineIso).getTime() - Date.now();
+    const hoursLeft = diffMs / (1000 * 60 * 60);
+
+    if (hoursLeft <= 6) return "text-red-600";
+    if (hoursLeft <= 24) return "text-orange-600";
+    return "text-amber-600";
+  }
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -101,7 +132,7 @@ export default function PlaceBid() {
       });
 
       const chatParam = bidData.chat_id ? `?chat=${bidData.chat_id}` : "";
-      navigate(`/writer/bids/${bidData.id}${chatParam}`);
+      navigate(`/writer/my-bids`);
     } catch (error: any) {
       console.error(error);
       toast({
@@ -208,7 +239,7 @@ export default function PlaceBid() {
                     <ul className="text-muted-foreground space-y-1 list-disc list-inside">
                       <li>Be professional and highlight relevant experience</li>
                       <li>Offer competitive pricing while valuing your work</li>
-                      <li>Set realistic deadlines you can meet</li>
+                      <li>Make sure you are comfortable with the client's deadline </li>
                       <li>Proofread your proposal before submitting</li>
                     </ul>
                   </div>
@@ -279,15 +310,11 @@ export default function PlaceBid() {
                   <span className="text-sm text-muted-foreground">Deadline</span>
                   <div className="flex items-center text-sm">
                     <Clock className="h-4 w-4 mr-1" />
-                      {order.deadline 
-                        ? new Date(order.deadline).toLocaleString(undefined, {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
-                        : "—"}
+                      {order.deadline && (
+                        <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
+                          {formatDeadlineRemaining(order.deadline)}
+                        </p>
+                      )}
                   </div>
                 </div>
               </div>
