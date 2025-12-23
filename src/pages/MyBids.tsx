@@ -282,7 +282,10 @@ export default function MyBids() {
                               size="sm"
                               variant="outline"
                               className="rounded-none border-0 shadow-none text-red-600"
-                              onClick={() => setCancelId(bid.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCancelId(bid.id);
+                              }}
                             >
                               <XCircle className="h-4 w-4" />
                             </Button>

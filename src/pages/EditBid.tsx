@@ -187,27 +187,13 @@ export default function EditBid() {
       return;
     }
 
-    if (order && parseFloat(bidAmount) > order.budget) {
+    if (order && parseFloat(bidAmount) < order.budget) {
       toast({
         title: "Invalid Bid Amount",
-        description: "Your bid cannot exceed the client's budget",
+        description: "Your bid cannot be less than the client's budget",
         variant: "destructive",
       });
       return;
-    }
-
-    if (order && deadline) {
-      const writerDate = new Date(deadline);
-      const clientDate = new Date(order.deadline);
-
-      if (writerDate > clientDate) {
-        toast({
-          title: "Invalid Deadline",
-          description: "Your proposed deadline cannot exceed the client's deadline.",
-          variant: "destructive",
-        });
-        return;
-      }
     }
 
     setIsSubmitting(true);
@@ -639,8 +625,7 @@ export default function EditBid() {
                       className="pl-9"
                       value={bidAmount}
                       onChange={(e) => setBidAmount(e.target.value)}
-                      min="1"
-                      max={order.budget}
+                      min={order.budget}
                       step="0.01"
                       required
                     />
@@ -649,30 +634,7 @@ export default function EditBid() {
                     Client's budget: ${order.budget}
                   </p>
                 </div>
-
-                {/* Deadline */}
-                {deadline && (
-                  <div className="space-y-2">
-                    <Label htmlFor="deadline">Proposed Deadline</Label>
-                    <div className="relative">
-                      <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="deadline"
-                        type="datetime-local"
-                        className="pl-9"
-                        value={deadline}
-                        onChange={(e) => setDeadline(e.target.value)}
-                        min={new Date().toISOString().slice(0, 16)}
-                        max={new Date(order.deadline).toISOString().slice(0, 16)}
-                      />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Must be on or before:{" "}
-                      {new Date(order.deadline).toLocaleString()}
-                    </p>
-                  </div>
-                )}
-
+                
                 {/* Proposal Message */}
                 <div className="space-y-2">
                   <Label htmlFor="message">Updated Proposal *</Label>
@@ -754,12 +716,11 @@ export default function EditBid() {
                   <span className="text-sm text-muted-foreground">Deadline</span>
                   <div className="flex items-center text-sm">
                     <Clock className="h-4 w-4 mr-1" />
-                    {new Date(order.deadline).toLocaleString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {order.deadline && (
+                      <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
+                        {formatDeadlineRemaining(order.deadline)}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

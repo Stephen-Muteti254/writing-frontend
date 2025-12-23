@@ -27,6 +27,16 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFileViewer } from "@/hooks/useFileViewer";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription
+} from "@/components/ui/alert-dialog";
 
 interface Order {
   id: string;
@@ -68,6 +78,8 @@ export default function OrderDetails() {
   const outletCtx = useOutletContext<any>() || {};
   const openCancelDialog = outletCtx.openCancelDialog || (() => {});
   const { previewFile, openPreview, closePreview, downloadFile } = useFileViewer();
+  const [declineOpen, setDeclineOpen] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
 
   /** -------------------------------
    *  Fetch Order Details
@@ -87,6 +99,28 @@ export default function OrderDetails() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!order) return;
+    try {
+      setIsDeclining(true);
+      await api.post(`/orders/${order.id}/decline`);
+      toast({
+        title: "Order Declined",
+        description: "You will no longer see this order.",
+      });
+      navigate("/writer/available-orders/declined");
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.response?.data?.error?.message || "Failed to decline order.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeclining(false);
+      setDeclineOpen(false);
     }
   };
 
@@ -156,7 +190,6 @@ export default function OrderDetails() {
    *  UI
    *  ------------------------------*/
   return (
-    <ScrollArea className="h-full pr-3">
       <div className="space-y-4 lg:px-0 pb-10">
 
       {/* Header */}
@@ -353,24 +386,7 @@ export default function OrderDetails() {
                 <Button
                   variant="destructive"
                   size="lg"
-                  onClick={async () => {
-                    try {
-                      await api.post(`/orders/${order.id}/decline`);
-                      toast({
-                        title: "Order Declined",
-                        description: "You will no longer see this order.",
-                      });
-                      navigate("/writer/available-orders/declined");
-                    } catch (err: any) {
-                      toast({
-                        title: "Error",
-                        description:
-                          err.response?.data?.error?.message ||
-                          "Failed to decline order.",
-                        variant: "destructive",
-                      });
-                    }
-                  }}
+                  onClick={() => setDeclineOpen(true)}
                 >
                   <XCircle className="h-4 w-4 mr-2" />
                   Decline
@@ -470,7 +486,44 @@ export default function OrderDetails() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Decline Dialog */}
+      <AlertDialog
+        open={declineOpen}
+        onOpenChange={(open) => {
+          if (!isDeclining) setDeclineOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline This Order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to decline this order?
+              <br /><br />
+              <strong>This action cannot be undone.</strong>
+              Once declined, this order will no longer appear in your available list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeclining}>Keep Order</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeclining}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleDecline}
+            >
+              {isDeclining ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Declining…
+                </>
+              ) : (
+                "Yes, Decline Order"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-    </ScrollArea>
   );
 }
