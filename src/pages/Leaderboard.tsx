@@ -118,7 +118,6 @@ export default function Leaderboard() {
         {/*</div>*/}
 
         {/* Full Leaderboard */}
-        <ScrollArea className="h-[calc(100dvh-9rem)]">
           <Card className="border-0 p-0">
             <CardContent className="p-0">
               <div className="space-y-2">
@@ -168,7 +167,6 @@ export default function Leaderboard() {
               </div>
             </CardContent>
           </Card>
-        </ScrollArea>
       </div>
   );
 }

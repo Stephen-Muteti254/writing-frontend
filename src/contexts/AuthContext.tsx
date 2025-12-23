@@ -30,8 +30,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // helper to clear
   const clearStorage = () => {
-    console.warn('[Auth] clearStorage() called — reason unknown yet');
-    console.trace('[Auth] stack trace for clearStorage call');
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     sessionStorage.removeItem('access_token');
@@ -45,26 +43,21 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const validateTokenWithBackend = async (): Promise<boolean> => {
     try {
       const response = await api.get('/auth/me');
-      console.debug('[Auth] validate response:', response.status, response.data);
 
       const userData = response.data;
 
       if (response.status === 200 && userData?.id) {
-        console.debug('[Auth] token valid, updating user.');
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         return true;
       }
 
-      console.warn('[Auth] validate: no user in response, marking invalid.');
       return false;
     } catch (err: any) {
       const status = err?.response?.status;
       const msg = err?.response?.data || err?.message;
-      console.error('[Auth] validateTokenWithBackend error:', status, msg);
 
       if (status === 401 || status === 403) {
-        console.warn('[Auth] backend rejected token (401/403) -> calling clearStorage()');
         clearStorage();
       }
 
@@ -98,7 +91,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             }
           }
         } catch (error) {
-          console.error('[Auth] Error validating stored token:', error);
           if (!cancelled) clearStorage();
         }
       } else {

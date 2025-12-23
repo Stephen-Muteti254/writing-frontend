@@ -437,8 +437,8 @@ export default function Balance() {
       </div>
 
       {/* MAIN */}
-      <Card className="p-0 border-0 h-[calc(100dvh-6.5rem)] overflow-hidden mt-3">
-        <CardContent className="p-0 h-full flex flex-col">
+      <Card className="p-0 border-0 mt-3">
+        <CardContent className="p-0 flex flex-col">
           {/* TABS */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex gap-3">
@@ -469,11 +469,6 @@ export default function Balance() {
           </div>
 
           {/* CONTENT */}
-          <ScrollArea
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="flex-1 pr-2"
-          >
             <div className="space-y-2">
 
               {/* Transactions */}
@@ -591,7 +586,6 @@ export default function Balance() {
                 </p>
               )}
             </div>
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>

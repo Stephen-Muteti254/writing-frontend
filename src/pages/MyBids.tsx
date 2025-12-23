@@ -27,7 +27,7 @@ interface Bid {
   id: string;
   order_id: string;
   order_title: string;
-  bid_amount: number;
+  amount: number;
   original_budget: number;
   budget: number
   status: string;
@@ -154,14 +154,14 @@ export default function MyBids() {
         <h1 className="text-3xl font-bold text-foreground">My Bids</h1>
       </div>
 
-      <Card className="p-0 border-0 h-[calc(100dvh-11rem)] overflow-hidden relative">
+      <Card className="p-0 border-0 relative">
         {initialLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
 
-        <CardContent className="p-0 h-full flex flex-col">
+        <CardContent className="p-0 flex flex-col">
           {/* Tabs + Filters */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-border">
             <div className="flex border-b sm:border-0 border-border">
@@ -208,92 +208,90 @@ export default function MyBids() {
           </div>
 
           {/* Scrollable Table */}
-          <ScrollArea ref={scrollRef} onScroll={handleScroll} className="flex-1">
-            <div className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Order</TableHead>
-                    <TableHead>Bid</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead>Actions</TableHead>
+          <div className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Bid</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Submitted</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                {bids.map((bid) => (
+                  <TableRow key={bid.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{bid.order_title}</p>
+                        <p className="text-sm text-muted-foreground">{bid.order_id}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center text-sm">
+                        <DollarSign className="h-4 w-4 mr-1" /> {bid.amount}
+                        <span className="text-muted-foreground ml-1">/ {bid.budget}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell><StatusBadge status={bid.status} /></TableCell>
+                    <TableCell>{new Date(bid.submitted_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="inline-flex w-auto border divide-x">
+                        {/* View button — always visible */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="rounded-none border-0 shadow-none"
+                          onClick={() =>
+                            navigate(`/writer/my-bids/view/${bid.id}`, {
+                              state: { viewOnly: true }
+                            })
+                          }
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+
+                        {/* Only show Edit + Cancel if NOT cancelled */}
+                        {bid.status !== "cancelled" && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-none border-0 shadow-none"
+                              onClick={() => navigate(`/writer/my-bids/edit/${bid.id}`)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-none border-0 shadow-none text-red-600"
+                              onClick={() => setCancelId(bid.id)}
+                            >
+                              <XCircle className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
+                ))}
+              </TableBody>
+            </Table>
 
-                <TableBody>
-                  {bids.map((bid) => (
-                    <TableRow key={bid.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{bid.order_title}</p>
-                          <p className="text-sm text-muted-foreground">{bid.order_id}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center text-sm">
-                          <DollarSign className="h-4 w-4 mr-1" /> {bid.bid_amount}
-                          <span className="text-muted-foreground ml-1">/ {bid.budget}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell><StatusBadge status={bid.status} /></TableCell>
-                      <TableCell>{new Date(bid.submitted_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <div className="inline-flex w-auto border divide-x">
-                          {/* View button — always visible */}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="rounded-none border-0 shadow-none"
-                            onClick={() =>
-                              navigate(`/writer/my-bids/view/${bid.id}`, {
-                                state: { viewOnly: true }
-                              })
-                            }
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+            {loading && !initialLoading && (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            )}
 
-                          {/* Only show Edit + Cancel if NOT cancelled */}
-                          {bid.status !== "cancelled" && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-none border-0 shadow-none"
-                                onClick={() => navigate(`/writer/my-bids/edit/${bid.id}`)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-none border-0 shadow-none text-red-600"
-                                onClick={() => setCancelId(bid.id)}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-
-              {loading && !initialLoading && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </div>
-              )}
-
-              {!loading && bids.length === 0 && !initialLoading && (
-                <p className="text-center text-muted-foreground mt-8">No bids found.</p>
-              )}
-            </div>
-          </ScrollArea>
+            {!loading && bids.length === 0 && !initialLoading && (
+              <p className="text-center text-muted-foreground mt-8">No bids found.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
       {cancelId && (

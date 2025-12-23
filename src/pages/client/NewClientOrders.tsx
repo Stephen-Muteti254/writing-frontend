@@ -94,15 +94,12 @@ export default function ClientOrders() {
         },
       });
 
-      console.log(response.data);
-
       const newOrders = response.data?.orders || [];
 
       setOrders(prev => reset ? newOrders : [...prev, ...newOrders]);
       setHasMore(response.data?.meta?.has_more ?? newOrders.length > 0);
 
     } catch (err: any) {
-      console.error(err);
       toast({
         title: "Failed to load orders",
         description: err.response?.data?.message || "Please try again.",
@@ -172,7 +169,6 @@ export default function ClientOrders() {
         navigate(`/client/orders/${tab}`);
       }
     } catch (err: any) {
-      console.error(err);
       toast({
         title: "Failed to cancel order",
         description: err.response?.data?.message || "Please try again.",
@@ -298,7 +294,17 @@ export default function ClientOrders() {
       </div>
 
       {/* Cancel Order Dialog */}
-      <AlertDialog open={!!cancelId} onOpenChange={() => setCancelId(null)}>
+      <AlertDialog
+        open={!!cancelId}
+        onOpenChange={(open) => {
+          if (isCancelling) return;
+          if (!open) {
+            setCancelId(null);
+            setCancelReason("");
+            setOrderToCancel(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel This Order?</AlertDialogTitle>
@@ -344,6 +350,9 @@ export default function ClientOrders() {
             <AlertDialogAction
               disabled={isCancelling}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClickCapture={(e) => {
+                e.preventDefault();
+              }}
               onClick={handleCancelOrder}
             >
               {isCancelling ? (

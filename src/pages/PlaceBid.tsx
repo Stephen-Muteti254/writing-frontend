@@ -36,7 +36,6 @@ export default function PlaceBid() {
 
   const [bidAmount, setBidAmount] = useState("");
   const [message, setMessage] = useState("");
-  const [deadline, setDeadline] = useState("");
 
 
   useEffect(() => {
@@ -64,7 +63,7 @@ export default function PlaceBid() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!bidAmount || !message || !deadline) {
+    if (!bidAmount || !message ) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",

@@ -51,6 +51,37 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+
+  function formatDeadlineRemaining(deadlineIso: string): string {
+    const deadline = new Date(deadlineIso);
+    const now = new Date();
+
+    const diffMs = deadline.getTime() - now.getTime();
+
+    if (isNaN(deadline.getTime())) return "Invalid deadline";
+    if (diffMs <= 0) return "Expired";
+
+    const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+
+    if (days > 0) {
+      return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
+    }
+
+    return `${hours} hour${hours !== 1 ? "s" : ""} left`;
+  }
+
+
+  function deadlineClass(deadlineIso: string) {
+    const diffMs = new Date(deadlineIso).getTime() - Date.now();
+    const hoursLeft = diffMs / (1000 * 60 * 60);
+
+    if (hoursLeft <= 6) return "text-red-600";
+    if (hoursLeft <= 24) return "text-orange-600";
+    return "text-amber-600";
+  }
+
   if (orders.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -97,9 +128,9 @@ export function OrdersTable({ orders }: OrdersTableProps) {
             </TableCell>
 
             <TableCell>
-              <div className="flex items-center text-sm">
+              <div className={`flex items-center text-sm ${deadlineClass(order.deadline)}`}>
                 <Calendar className="h-4 w-4 mr-1" />
-                {order.deadline}
+                {formatDeadlineRemaining(order.deadline)}
               </div>
             </TableCell>
 

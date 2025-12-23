@@ -128,14 +128,14 @@ export default function MyOrders() {
         <h1 className="text-3xl font-bold text-foreground">My Orders</h1>
       </div>
 
-      <Card className="p-0 border-0 h-[calc(100dvh-11rem)] overflow-hidden relative">
+      <Card className="p-0 border-0 relative">
         {loadingInitial && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-20">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
 
-        <CardContent className="p-0 h-full flex flex-col">
+        <CardContent className="p-0 flex flex-col">
           {/* Parent Tabs + Filters */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 py-0">
             <div className="flex">
@@ -290,17 +290,15 @@ export default function MyOrders() {
 
 
           {/* Scrollable Table */}
-          <ScrollArea className="flex-1" ref={scrollRef} onScroll={handleScroll}>
-            <div className="px-3 py-2">
-              <OrdersTable orders={orders} />
+          <div className="px-3 py-2">
+            <OrdersTable orders={orders} />
 
-              {loadingMore && !loadingInitial && (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </div>
-              )}
-            </div>
-          </ScrollArea>
+            {loadingMore && !loadingInitial && (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

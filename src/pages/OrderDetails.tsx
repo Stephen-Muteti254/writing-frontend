@@ -90,6 +90,37 @@ export default function OrderDetails() {
     }
   };
 
+
+  function formatDeadlineRemaining(deadlineIso: string): string {
+    const deadline = new Date(deadlineIso);
+    const now = new Date();
+
+    const diffMs = deadline.getTime() - now.getTime();
+
+    if (isNaN(deadline.getTime())) return "Invalid deadline";
+    if (diffMs <= 0) return "Expired";
+
+    const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+
+    if (days > 0) {
+      return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
+    }
+
+    return `${hours} hour${hours !== 1 ? "s" : ""} left`;
+  }
+
+
+  function deadlineClass(deadlineIso: string) {
+    const diffMs = new Date(deadlineIso).getTime() - Date.now();
+    const hoursLeft = diffMs / (1000 * 60 * 60);
+
+    if (hoursLeft <= 6) return "text-red-600";
+    if (hoursLeft <= 24) return "text-orange-600";
+    return "text-amber-600";
+  }
+
   useEffect(() => {
     if (orderId) fetchOrderDetails();
   }, [orderId]);
@@ -250,11 +281,11 @@ export default function OrderDetails() {
                 <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Deadline</p>
-                  <p className="text-muted-foreground">
-                    {order.deadline
-                      ? new Date(order.deadline).toLocaleString()
-                      : "N/A"}
-                  </p>
+                  {order.deadline && (
+                    <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
+                      {formatDeadlineRemaining(order.deadline)}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center text-sm">
@@ -267,7 +298,7 @@ export default function OrderDetails() {
             </CardContent>
           </Card>
 
-          {/* Client Info (hide for clients themselves) */}
+          {/* Client Info (hide for clients themselves) 
           {user?.role !== "client" && order.client && (
             <Card>
               <CardHeader>
@@ -281,6 +312,7 @@ export default function OrderDetails() {
               </CardContent>
             </Card>
           )}
+          */}
 
           {/* ROLE-SPECIFIC ACTIONS */}
           <div className="space-y-3">

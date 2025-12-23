@@ -65,6 +65,7 @@ export default function OrderBids() {
           submitted_at: b.submitted_at || b.created_at,
         }));
         const pagination = res.data?.pagination || {};
+        console.log(list);
 
         setBids(prev => (reset ? list : [...prev, ...list]));
         setPage(pagination.page || p);
@@ -224,7 +225,7 @@ export default function OrderBids() {
                       <div className="flex flex-col items-end justify-between sm:w-48">
                         <div className="text-right">
                           <p className="text-2xl font-bold text-foreground">
-                            ${Number(bid.bid_amount).toFixed(2)}
+                            ${Number(bid.amount).toFixed(2)}
                           </p>
                           <Badge
                             variant={

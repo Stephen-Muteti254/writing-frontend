@@ -18,6 +18,17 @@ import {
   XCircle,
 } from "lucide-react";
 import api from "@/lib/api";
+import ReactCountryFlag from "react-country-flag";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+} from "@/components/ui/alert-dialog";
 
 interface Order {
   id: string;
@@ -52,25 +63,71 @@ export default function AvailableOrders() {
   const [dateTo, setDateTo] = useState("");
   const [initialLoading, setInitialLoading] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [declineId, setDeclineId] = useState<string | null>(null);
+  const [isDeclining, setIsDeclining] = useState(false);
 
   // Redirect invalid tab
   if (!["all", "invited", "declined"].includes(tab)) {
     return <Navigate to="/writer/available-orders/all" replace />;
   }
 
-  const handleDecline = async (orderId: string) => {
+  const handleDecline = async () => {
+    if (!declineId) return;
+
     try {
-      await api.post(`/orders/${orderId}/decline`);
-      toast({ title: "Order declined", description: "This order has been removed from your list." });
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      setIsDeclining(true);
+
+      await api.post(`/orders/${declineId}/decline`);
+
+      toast({
+        title: "Order declined",
+        description: "This order has been removed from your list.",
+      });
+
+      setOrders(prev => prev.filter(o => o.id !== declineId));
+      setDeclineId(null);
     } catch (err: any) {
       toast({
         title: "Error",
-        description: err.response?.data?.error?.message || "Failed to decline order.",
+        description:
+          err.response?.data?.error?.message || "Failed to decline order.",
         variant: "destructive",
       });
+    } finally {
+      setIsDeclining(false);
     }
   };
+
+
+  function formatDeadlineRemaining(deadlineIso: string): string {
+    const deadline = new Date(deadlineIso);
+    const now = new Date();
+
+    const diffMs = deadline.getTime() - now.getTime();
+
+    if (isNaN(deadline.getTime())) return "Invalid deadline";
+    if (diffMs <= 0) return "Expired";
+
+    const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+
+    if (days > 0) {
+      return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
+    }
+
+    return `${hours} hour${hours !== 1 ? "s" : ""} left`;
+  }
+
+
+  function deadlineClass(deadlineIso: string) {
+    const diffMs = new Date(deadlineIso).getTime() - Date.now();
+    const hoursLeft = diffMs / (1000 * 60 * 60);
+
+    if (hoursLeft <= 6) return "text-red-600";
+    if (hoursLeft <= 24) return "text-orange-600";
+    return "text-amber-600";
+  }
 
   const fetchOrders = async (pageNum = 1, reset = false) => {
     try {
@@ -135,14 +192,14 @@ export default function AvailableOrders() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {/* Static Title */}
       <div className="flex items-center justify-between flex-shrink-0">
         <h1 className="text-3xl font-bold text-foreground">Available Orders</h1>
       </div>
 
       {/* Card Container */}
-      <Card className="border-0 flex-1 flex flex-col min-h-0 p-0 overflow-hidden">
+      <Card className="border-0 flex-1 flex flex-col p-0">
         {initialLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -150,7 +207,7 @@ export default function AvailableOrders() {
         )}
         
         <CardContent
-          className={`flex-1 flex flex-col min-h-0 p-0 transition-opacity overflow-hidden ${
+          className={`flex-1 flex flex-col p-0 transition-opacity ${
             initialLoading ? "pointer-events-none opacity-50" : ""
           }`}
         >
@@ -344,99 +401,143 @@ export default function AvailableOrders() {
           )}
 
           {/* Scrollable Orders List */}
-          <ScrollArea
-            className="flex-1 min-h-0 -mx-6 px-6 h-full"
-            viewportClassName="h-full"
-            onScrollCapture={handleScroll}
-          >
-            <div className="space-y-4 h-full">
-              {orders.map((order) => (
-                <Card
-                  key={order.id}
-                  className="hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => navigate(`/writer/order-details/${order.id}`)}
-                >
-                  <CardHeader className="p-2 pl-6 pb-1">
-                    <CardTitle className="text-base font-semibold">
-                      {order.title}
-                    </CardTitle>
-                  </CardHeader>
+          <div className="space-y-4">
+            {orders.map((order) => (
+              <Card
+                key={order.id}
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/writer/order-details/${order.id}`)}
+              >
+                <CardHeader className="p-2 pl-6 pb-1">
+                  <CardTitle className="text-base font-semibold">
+                    {order.title}
+                  </CardTitle>
+                </CardHeader>
 
-                  <CardContent className="text-sm text-muted-foreground p-2 pl-6 pt-0">
-                    <div className="flex flex-wrap gap-3 justify-between items-center">
-                      <div className="flex flex-wrap gap-3">
-                        <Badge variant="outline">{order.subject || "General"}</Badge>
-                        <span>{order.type}</span>
-                        <span>{order.pages} pages</span>
-                        {order.deadline && (
-                          <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {new Date(order.deadline).toLocaleDateString()}
-                          </span>
-                        )}
-                        {order.client && (
-                          <span className="flex items-center">
-                            <Globe className="h-3 w-3 mr-1" />
-                            {order.client.name}
-                          </span>
-                        )}
+                <CardContent className="text-sm text-muted-foreground p-2 pl-6 pt-0">
+                  <div className="flex flex-wrap gap-3 justify-between items-center">
+                    <div className="flex flex-wrap gap-3">
+                      <Badge variant="outline">{order.subject || "General"}</Badge>
+                      <span>{order.type}</span>
+                      <span>{order.pages} pages</span>
+                      {order.deadline && (
+                        <span className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatDeadlineRemaining(order.deadline)}
+                        </span>
+                      )}
+                      {order.client && (
+                        <span className="flex items-center gap-1">
+                          {order.client.country ? (
+                            <ReactCountryFlag
+                              countryCode={order.client.country}
+                              svg
+                              style={{ width: "1em", height: "1em" }}
+                            />
+                          ) : (
+                            <Globe className="h-3 w-3" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-base font-semibold flex items-center">
+                        <DollarSign className="h-4 w-4 mr-1" />
+                        {order.budget?.toFixed(2)}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="text-base font-semibold flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          {order.budget?.toFixed(2)}
-                        </div>
-                        <div className="inline-flex w-auto border divide-x">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-none border-0 shadow-none"
-                            onClick={() => {
-                              e.stopPropagation();
-                              navigate(`/writer/order-details/${order.id}`);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-none border-0 shadow-none text-red-600"                          
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDecline(order.id);
-                            }}
-                          >
-                            <XCircle className="h-4 w-4 mr-1" />
-                          </Button>
-                        </div>
+                      <div className="inline-flex w-auto border divide-x">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-none border-0 shadow-none"
+                          onClick={() => {
+                            e.stopPropagation();
+                            navigate(`/writer/order-details/${order.id}`);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-none border-0 shadow-none text-red-600"                          
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeclineId(order.id);
+                          }}
+                        >
+                          <XCircle className="h-4 w-4 mr-1" />
+                        </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
 
-              {!initialLoading && loading && (
-                <div className="flex justify-center py-6">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              )}
+            {!initialLoading && loading && (
+              <div className="flex justify-center py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            )}
 
-              {!loading && orders.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">
-                  No available orders found.
-                </p>
-              )}
+            {!loading && orders.length === 0 && (
+              <p className="text-center text-muted-foreground py-8">
+                No available orders found.
+              </p>
+            )}
 
-              {!hasMore && orders.length > 0 && (
-                <p className="text-center text-muted-foreground py-6">
-                  No more orders to load.
-                </p>
-              )}
-            </div>
-          </ScrollArea>
+            {!hasMore && orders.length > 0 && (
+              <p className="text-center text-muted-foreground py-6">
+                No more orders to load.
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      <AlertDialog
+        open={!!declineId}
+        onOpenChange={(open) => {
+          if (isDeclining) return;
+          if (!open) setDeclineId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Decline This Order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to decline this order?
+              <br />
+              <br />
+              <strong>This action cannot be undone.</strong>
+              Once declined, this order will no longer appear in your available list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeclining}>
+              Keep Order
+            </AlertDialogCancel>
+
+            <AlertDialogAction
+              disabled={isDeclining}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClickCapture={(e) => e.preventDefault()}
+              onClick={handleDecline}
+            >
+              {isDeclining ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Declining…
+                </>
+              ) : (
+                "Yes, Decline Order"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

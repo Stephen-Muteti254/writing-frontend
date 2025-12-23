@@ -126,6 +126,36 @@ export default function OrderView() {
     }
   };
 
+  function formatDeadlineRemaining(deadlineIso: string): string {
+    const deadline = new Date(deadlineIso);
+    const now = new Date();
+
+    const diffMs = deadline.getTime() - now.getTime();
+
+    if (isNaN(deadline.getTime())) return "Invalid deadline";
+    if (diffMs <= 0) return "Expired";
+
+    const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const days = Math.floor(totalHours / 24);
+    const hours = totalHours % 24;
+
+    if (days > 0) {
+      return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
+    }
+
+    return `${hours} hour${hours !== 1 ? "s" : ""} left`;
+  }
+
+
+  function deadlineClass(deadlineIso: string) {
+    const diffMs = new Date(deadlineIso).getTime() - Date.now();
+    const hoursLeft = diffMs / (1000 * 60 * 60);
+
+    if (hoursLeft <= 6) return "text-red-600";
+    if (hoursLeft <= 24) return "text-orange-600";
+    return "text-amber-600";
+  }
+
   const getMilestoneStatus = (status: string) => {
     switch (status) {
       case "completed":
@@ -300,17 +330,12 @@ export default function OrderView() {
                 <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Deadline</p>
-                  <p className="text-muted-foreground">
-                    {order.deadline 
-                      ? new Date(order.deadline).toLocaleString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })
-                      : "—"}
-                  </p>
+                  {order.deadline && (
+                    <span className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>
+                      {/*<Clock className="h-3 w-3 mr-1" />*/}
+                      {formatDeadlineRemaining(order.deadline)}
+                    </span>
+                    )}
                 </div>
               </div>
             </CardContent>

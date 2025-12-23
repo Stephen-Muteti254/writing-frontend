@@ -165,7 +165,7 @@ export default function Notifications() {
       </div>
 
       {/* Notifications Card */}
-      <Card className="border-0 h-[calc(100dvh-7rem)] overflow-hidden">
+      <Card className="border-0">
         <CardContent className="p-0 h-full flex flex-col">
           {/* initial loading overlay (keeps original feel) */}
           {initialLoading && (
@@ -173,8 +173,6 @@ export default function Notifications() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           )}
-
-          <ScrollArea ref={scrollRef} className="flex-1 pr-2" onScroll={handleScroll} className="flex-1 pr-2">
             <div className="p-2 space-y-1 pb-8">
               {notifications.length === 0 && !initialLoading ? (
                 <div className="text-center py-12">
@@ -235,7 +233,6 @@ export default function Notifications() {
                 </p>
               )}
             </div>
-          </ScrollArea>
         </CardContent>
       </Card>
     </div>
