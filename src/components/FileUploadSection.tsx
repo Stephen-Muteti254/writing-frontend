@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/table";
 import { Upload, X, FileText, Loader2, CloudUpload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export const FILE_TYPES = [
   { value: "ai_report", label: "AI Report" },
@@ -53,6 +55,7 @@ export function FileUploadSection({
   isUploading,
 }: FileUploadSectionProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [writerMessage, setWriterMessage] = useState("");
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -154,6 +157,7 @@ export function FileUploadSection({
 
         {/* Files Table */}
         {files.length > 0 && (
+          <>
           <div className="border rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
@@ -209,8 +213,29 @@ export function FileUploadSection({
                   </TableRow>
                 ))}
               </TableBody>
-            </Table>
+            </Table>            
           </div>
+
+          {/* Writer Message */}
+          <div className="space-y-2">
+            <Label htmlFor="writer-message" className="text-sm font-medium">
+              Message to Client <span className="text-muted-foreground">(optional)</span>
+            </Label>
+
+            <Textarea
+              id="writer-message"
+              placeholder="Add a short note for the client about these files..."
+              value={writerMessage}
+              onChange={(e) => setWriterMessage(e.target.value)}
+              maxLength={500}
+              className="resize-none"
+            />
+
+            <div className="text-xs text-muted-foreground text-right">
+              {writerMessage.length}/500
+            </div>
+          </div>
+          </>
         )}
 
         {/* Submit Button */}

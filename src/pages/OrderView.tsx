@@ -355,14 +355,18 @@ export default function OrderView() {
         </Card>
 
         {/* Attached Files */}
-        <Card className="shadow-card animate-fade-in" style={{ animationDelay: "150ms" }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">
-              Attached Files ({order.files?.length || 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {order.files && order.files.length > 0 ? (
+        {order.files && order.files.length > 0 && (
+          <Card
+            className="shadow-card animate-fade-in"
+            style={{ animationDelay: "150ms" }}
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-semibold">
+                Attached Files ({order.files.length})
+              </CardTitle>
+            </CardHeader>
+
+            <CardContent>
               <div className="space-y-3">
                 {order.files.map((file) => (
                   <div
@@ -383,6 +387,7 @@ export default function OrderView() {
                         </p>
                       </div>
                     </div>
+
                     <Button
                       variant="ghost"
                       size="icon"
@@ -397,16 +402,10 @@ export default function OrderView() {
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="p-3 rounded-full bg-muted w-fit mx-auto mb-3">
-                  <FileText className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <p className="text-muted-foreground">No files attached</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
 
         {/* File Upload Section */}
         <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
@@ -419,7 +418,7 @@ export default function OrderView() {
         </div>
 
         {/* Quick Actions */}
-        <Card className="shadow-card animate-fade-in" style={{ animationDelay: "250ms" }}>
+        {/*<Card className="shadow-card animate-fade-in" style={{ animationDelay: "250ms" }}>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
           </CardHeader>
@@ -428,7 +427,7 @@ export default function OrderView() {
               Request Revision
             </Button>
           </CardContent>
-        </Card>
+        </Card>*/}
       </div>
 
       {/* File Preview Dialog */}

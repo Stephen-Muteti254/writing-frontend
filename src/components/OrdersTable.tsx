@@ -106,7 +106,11 @@ export function OrdersTable({ orders }: OrdersTableProps) {
 
       <TableBody>
         {orders.map((order) => (
-          <TableRow key={order.id}>
+          <TableRow
+            key={order.id}
+            onClick={() => navigate(`/writer/order-view/${order.id}`)}
+            className="cursor-pointer hover:bg-muted/50 transition-colors"
+          >
             <TableCell>
               <div>
                 <p className="font-medium">{order.title}</p>
@@ -115,20 +119,25 @@ export function OrdersTable({ orders }: OrdersTableProps) {
             </TableCell>
 
             <TableCell>
-              <Badge variant="outline">{order.subject}</Badge>
+              <Badge
+                variant="outline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {order.subject}
+              </Badge>
             </TableCell>
 
             <TableCell>
               <div className="text-sm">
                 <p>{order.type}</p>
-                <p className="text-muted-foreground">
-                  {order.pages} pages
-                </p>
+                <p className="text-muted-foreground">{order.pages} pages</p>
               </div>
             </TableCell>
 
             <TableCell>
-              <div className={`flex items-center text-sm ${deadlineClass(order.deadline)}`}>
+              <div
+                className={`flex items-center text-sm ${deadlineClass(order.deadline)}`}
+              >
                 <Calendar className="h-4 w-4 mr-1" />
                 {formatDeadlineRemaining(order.deadline)}
               </div>
@@ -144,12 +153,17 @@ export function OrdersTable({ orders }: OrdersTableProps) {
             <TableCell>{getStatusBadge(order.status)}</TableCell>
 
             <TableCell>
-              <div className="inline-flex w-auto border divide-x">
+              <div
+                className="inline-flex w-auto border divide-x"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <Button
                   size="sm"
                   variant="outline"
                   className="rounded-none border-0 shadow-none"
-                  onClick={() => navigate(`/writer/order-view/${order.id}`)}
+                  onClick={() =>
+                    navigate(`/writer/order-view/${order.id}`)
+                  }
                 >
                   <Eye className="h-4 w-4 mr-1" />
                 </Button>
@@ -158,13 +172,16 @@ export function OrdersTable({ orders }: OrdersTableProps) {
                   size="sm"
                   variant="outline"
                   className="rounded-none border-0 shadow-none"
-                  onClick={() => navigate(`/writer/chats?order=${order.id}&client=${order.client.id}`)}
+                  onClick={() =>
+                    navigate(
+                      `/writer/chats?order=${order.id}&client=${order.client?.id}`
+                    )
+                  }
                 >
                   <MessageSquare className="h-4 w-4 mr-1" />
                 </Button>
               </div>
             </TableCell>
-
           </TableRow>
         ))}
       </TableBody>
