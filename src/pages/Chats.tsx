@@ -15,6 +15,8 @@ import { MessageSquare, Send, CheckCheck, Loader2, MoreVertical, Pencil, Trash2 
 import api from "@/lib/api";
 import { useChatContext } from "@/contexts/ChatContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { groupMessagesByDate, formatChatDate } from "@/lib/chatUtils";
+
 
 export default function Chats() {
   const navigate = useNavigate();
@@ -266,6 +268,8 @@ export default function Chats() {
     const tempId = "temp-" + Date.now();
 
     // optimistic temporary message
+    const now = new Date().toISOString();
+
     const tempMessage = {
       id: tempId,
       chat_id: selectedChatId,
@@ -273,6 +277,8 @@ export default function Chats() {
       sender: { id: currentUserId },
       edited: false,
       sending: true,
+      created_at: now,
+      sent_at: now,
     };
 
     setMessages(prev => [...prev, tempMessage]);
@@ -315,6 +321,8 @@ export default function Chats() {
 
 
   const selectedChat = chats.find(c => c.id === selectedChatId) || null;
+  const messageGroups = groupMessagesByDate(messages);
+
 
   return (
     <div className="flex h-screen overflow-hidden min-h-0">
@@ -375,7 +383,7 @@ export default function Chats() {
               {user?.role != "client" ? (
                 <>
                   {/* WRITER VIEW */}
-                  <CardTitle>{selectedChat.order_title}</CardTitle>
+                  <CardTitle className="text-xl">{selectedChat.order_title}</CardTitle>
                   <p className="text-sm text-muted-foreground">
                     Order {selectedChat.order_id}
                   </p>
@@ -383,7 +391,7 @@ export default function Chats() {
               ) : (
                 <>
                   {/* CLIENT VIEW (unchanged) */}
-                  <CardTitle>
+                  <CardTitle className="text-xl">
                     {selectedChat.order_title}
                   </CardTitle>
                   <p className="text-sm text-muted-foreground">
@@ -429,129 +437,132 @@ export default function Chats() {
                   ) : messages.length === 0 ? (
                     <p className="text-center text-muted-foreground">No messages</p>
                   ) : (
-                    messages.map(m => {
-                      if (!m || !m.sender) return null;
-                      const isMine = String(m.sender.id) === String(currentUserId);
-                      const isEditing = editingMessageId === m.id;
-                      
-                      return (
-                        <div 
-                          key={m.id} 
-                          className={`flex group ${isMine ? "justify-end" : "justify-start"}`}
-                          onMouseEnter={() => setHoveredMessageId(m.id)}
-                          onMouseLeave={() => setHoveredMessageId(null)}
-                        >
-                          <div className="relative flex items-start gap-2 max-w-[70%]">
-                            {isMine && !isEditing && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className={`h-8 w-8 transition-opacity ${
-                                      hoveredMessageId === m.id ? "opacity-100" : "opacity-0"
-                                    }`}
-                                  >
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-40">
-                                  <DropdownMenuItem 
-                                    onClick={() => startEdit(m)}
-                                    className="cursor-pointer"
-                                  >
-                                    <Pencil className="mr-2 h-4 w-4" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => handleDeleteMessage(m.id)}
-                                    className="cursor-pointer text-destructive focus:text-destructive"
-                                  >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                            
+                    Object.entries(messageGroups).map(([dateKey, msgs]) => (
+                      <div key={dateKey}>
+                        {/* Date separator */}
+                        <div className="flex items-center gap-2 my-4">
+                          <div className="flex-1 h-px bg-border" />
+                          <span className="text-xs text-muted-foreground px-2">
+                            {formatChatDate(msgs[0].sent_at || msgs[0].created_at)}
+                          </span>
+                          <div className="flex-1 h-px bg-border" />
+                        </div>
+
+                        {/* YOUR EXISTING MESSAGE LOOP — UNCHANGED */}
+                        <div className="flex flex-col space-y-4">
+                        {msgs.map(m => {
+                          if (!m || !m.sender) return null;
+
+                          const isMine = String(m.sender.id) === String(currentUserId);
+                          const isEditing = editingMessageId === m.id;
+
+                          return (
                             <div
-                              className={`relative py-2 px-3 rounded-lg ${
-                                isMine ? "bg-primary text-primary-foreground" : "bg-muted"
-                              } ${deletingMessageIds[m.id] ? "opacity-50" : ""}`}
+                              key={m.id}
+                              className={`flex group ${isMine ? "justify-end" : "justify-start"}`}
+                              onMouseEnter={() => setHoveredMessageId(m.id)}
+                              onMouseLeave={() => setHoveredMessageId(null)}
                             >
-                              {isEditing ? (
-                                <div className="flex flex-col gap-2">
-                                  <Input
-                                    value={editContent}
-                                    onChange={(e) => setEditContent(e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") handleEditMessage(m.id);
-                                      if (e.key === "Escape") cancelEdit();
-                                    }}
-                                    className={`min-w-[200px] ${
-                                      isMine
-                                        ? "text-primary-foreground bg-primary/20 placeholder-primary-foreground/70"
-                                        : "text-foreground bg-muted/30 placeholder-foreground/60"
-                                    }`}
-                                    autoFocus
-                                  />
-                                  <div className="flex gap-2 justify-end">
-                                    <Button
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={cancelEdit}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      onClick={() => handleEditMessage(m.id)}
-                                    >
-                                      Save
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <>
-                                  <p>{m.content}</p>
-                                  {sendingMessageIds[m.id] && (
-                                    <div className="absolute bottom-1 right-2">
+                              <div className="relative flex items-start gap-2 max-w-[70%]">
+                                {isMine && !isEditing && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className={`h-8 w-8 transition-opacity ${
+                                          hoveredMessageId === m.id ? "opacity-100" : "opacity-0"
+                                        }`}
+                                      >
+                                        <MoreVertical className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-40">
+                                      <DropdownMenuItem onClick={() => startEdit(m)}>
+                                        <Pencil className="mr-2 h-4 w-4" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handleDeleteMessage(m.id)}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+
+                                <div
+                                  className={`relative py-2 px-3 rounded-lg ${
+                                    isMine ? "bg-primary text-primary-foreground" : "bg-muted"
+                                  } ${deletingMessageIds[m.id] ? "opacity-50" : ""}`}
+                                >
+                                  {isEditing ? (
+                                    <div className="flex flex-col gap-2">
+                                      <Input
+                                        value={editContent}
+                                        onChange={(e) => setEditContent(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") handleEditMessage(m.id);
+                                          if (e.key === "Escape") cancelEdit();
+                                        }}
+                                        autoFocus
+                                      />
+                                      <div className="flex gap-2 justify-end">
+                                        <Button size="sm" variant="ghost" onClick={cancelEdit}>
+                                          Cancel
+                                        </Button>
+                                        <Button size="sm" onClick={() => handleEditMessage(m.id)}>
+                                          Save
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <p>{m.content}</p>
+
+                                      {sendingMessageIds[m.id] && (
+                                        <div className="absolute bottom-1 right-2">
+                                          <Loader2 className="h-3 w-3 animate-spin opacity-80" />
+                                        </div>
+                                      )}
+
+                                      {m.failed && (
+                                        <span className="text-[10px] text-red-300 italic">
+                                          Failed to send
+                                        </span>
+                                      )}
+
+                                      {m.edited && (
+                                        <span className="text-xs opacity-70 italic">edited</span>
+                                      )}
+                                    </>
+                                  )}
+
+                                  {editingMessageIds[m.id] && (
+                                    <div className="absolute bottom-1 right-2 pointer-events-none">
                                       <Loader2 className="h-3 w-3 animate-spin opacity-80" />
                                     </div>
                                   )}
 
-                                  {m.failed && (
-                                    <span className="text-[10px] text-red-300 italic">Failed to send</span>
+                                  {deletingMessageIds[m.id] && (
+                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center rounded-lg">
+                                      <Loader2 className="h-4 w-4 animate-spin text-white" />
+                                    </div>
                                   )}
-
-                                  {m.edited && (
-                                    <span className="text-xs opacity-70 italic">edited</span>
-                                  )}
-                                </>
-                              )}
-
-                              {editingMessageIds[m.id] && (
-                                <div className="absolute bottom-1 right-2 pointer-events-none">
-                                  <Loader2 className="h-3 w-3 animate-spin opacity-80" />
                                 </div>
-                              )}
-
-                              {deletingMessageIds[m.id] && (
-                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center rounded-lg">
-                                  <Loader2 className="h-4 w-4 animate-spin text-white" />
-                                </div>
-                              )}
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      );
-                    })
+                          );
+                        })}
+                      </div>
+                      </div>
+                    ))
                   )}
                   <div ref={messagesEndRef} />
                 </div>
               </ScrollArea>
-
-
               {/* Input bar */}
               <div className="border-t p-3 flex gap-2 bg-background shrink-0">
                 <Input

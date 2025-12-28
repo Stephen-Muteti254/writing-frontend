@@ -399,7 +399,7 @@ export default function OrderFormPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="h-full bg-background pr-2">
       <div className="shrink-0 bg-background">
         {isLoading ? (
           <div className="flex items-center gap-2">
@@ -423,8 +423,8 @@ export default function OrderFormPage() {
         )}
       </div>
 
-        <ScrollArea className="flex-1 pr-4 py-4">
-        <div className="max-w-5xl mx-auto space-y-4 pb-10">
+        {/*<ScrollArea className="flex-1 pr-4 py-4">*/}
+        <div className="flex-1 max-w-5xl mx-auto space-y-4 pb-10 mt-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
             {/* Basic Information */}
@@ -1059,7 +1059,7 @@ export default function OrderFormPage() {
           </form>
         </Form>
       </div>
-      </ScrollArea>
+      {/*</ScrollArea>*/}
     </div>
   );
 }

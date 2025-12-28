@@ -21,7 +21,7 @@ export default function ClientLayout({ noPadding }) {
             <h2 className="ml-4 text-lg font-semibold">Client Dashboard</h2>
           </div>
 
-          <div className={`flex-1 h-full ${disablePadding ? "p-0" : "p-4 lg:p-6"}`}>
+          <div className={`flex-1 h-full ${disablePadding ? "p-0" : "p-2 lg:p-3"}`}>
             <Outlet />
           </div>
         </main>

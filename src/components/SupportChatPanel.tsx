@@ -386,7 +386,7 @@ export function SupportChatPanel({
           <Button type="button" variant="ghost" size="icon" disabled={sending || pendingFiles.length > 5} onClick={() => document.getElementById("chat-files")?.click()}>
             <Paperclip className="h-4 w-4 text-muted-foreground" />
           </Button>
-          <Input ref={inputRef} value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 bg-background" disabled={sending} />
+          <Input ref={inputRef} value={newMessage} onChange={e => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 bg-background"/>
           <Button type="submit" size="icon" className="h-10 w-10 flex-shrink-0" disabled={!newMessage.trim() || sending}>
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>

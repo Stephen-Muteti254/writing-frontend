@@ -8,6 +8,8 @@ import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import LightLogo from "@/assets/light-mini-logo.PNG";
+import DarkLogo from "@/assets/dark-mini-logo.PNG";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -79,7 +81,16 @@ const Login = () => {
         <CardHeader className="space-y-4 text-center">
           <div className="flex justify-center">
             <div className="bg-primary/10 p-3 rounded-lg">
-              <FileText className="h-8 w-8 text-primary" />
+              <img 
+                src={LightLogo} 
+                alt="AcademicHub" 
+                className="w-auto h-16 block dark:hidden" 
+              />
+              <img 
+                src={DarkLogo} 
+                alt="AcademicHub" 
+                className="w-auto h-16 hidden dark:block" 
+              />
             </div>
           </div>
           <CardTitle className="text-2xl">Welcome Back</CardTitle>

@@ -2,6 +2,8 @@ import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileText, Menu, X } from "lucide-react";
 import { useState } from "react";
+import LightLogo from "@/assets/academichub-logo-light-theme.PNG";
+import DarkLogo from "@/assets/academichub-logo-dark-theme.PNG";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
@@ -27,8 +29,16 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <FileText className="h-8 w-8 text-primary" />
-              <span className="text-xl font-bold text-foreground">AcademicHub</span>
+              <img 
+                src={LightLogo} 
+                alt="AcademicHub" 
+                className="w-auto h-8 block dark:hidden" 
+              />
+              <img 
+                src={DarkLogo} 
+                alt="AcademicHub" 
+                className="w-auto h-8 hidden dark:block" 
+              />
             </Link>
 
             {/* Desktop Navigation */}
@@ -116,8 +126,16 @@ export const PublicLayout = ({ children }: PublicLayoutProps) => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-2 mb-4">
-                <FileText className="h-6 w-6 text-primary" />
-                <span className="text-lg font-bold">AcademicHub</span>
+                <img 
+                src={LightLogo} 
+                alt="AcademicHub" 
+                className="w-auto h-8 block dark:hidden" 
+              />
+              <img 
+                src={DarkLogo} 
+                alt="AcademicHub" 
+                className="w-auto h-8 hidden dark:block" 
+              />
               </div>
               <p className="text-sm text-muted-foreground max-w-md">
                 Connecting clients with expert writers for high-quality academic work. 

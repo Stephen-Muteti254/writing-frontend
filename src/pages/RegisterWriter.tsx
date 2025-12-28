@@ -66,7 +66,7 @@ const RegisterWriter = () => {
                 title: "Application Required",
                 description: "Please complete your writer application to continue.",
               });
-              navigate("/writer-application");
+              navigate("/writer-onboarding/apply");
               break;
 
             case "applied":

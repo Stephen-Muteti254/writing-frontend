@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { ChevronRight, ChevronDown, FileText, Edit, Users, Upload, X } from "lucide-react";
+import { ChevronRight, ChevronDown, FileText, Edit, Users, Upload, X, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Order {
@@ -30,6 +30,7 @@ const SUBDIRECTORIES = [
   { slug: "edit", label: "Edit Order", icon: Edit },
   { slug: "bids", label: "Bids", icon: Users },
   { slug: "submissions", label: "Submissions", icon: Upload },
+  { slug: "rate", label: "Rate Writer", icon: Star, completedOnly: true },
 ];
 
 export function FileExplorerItem({ 
@@ -44,6 +45,7 @@ export function FileExplorerItem({
   const [isHovered, setIsHovered] = useState(false);
 
   const canCancel = order.status !== "completed" && order.status !== "cancelled";
+  const isCompleted = order.status === "completed";
 
   const handleExpandClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -67,6 +69,8 @@ export function FileExplorerItem({
       navigate(`/client/orders/${currentTab}/${order.id}/bids/all`);
     } else if (slug === "edit") {
       navigate(`/client/orders/${currentTab}/${order.id}/edit`);
+    } else if (slug === "rate") {
+      navigate(`/client/orders/${currentTab}/${order.id}/rate`);
     } else {
       navigate(`/client/orders/${currentTab}/${order.id}/${slug}`);
     }
@@ -130,6 +134,11 @@ export function FileExplorerItem({
         <div className="ml-2 mt-1 mb-2 rounded-sm border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
           {SUBDIRECTORIES
             .filter(subdir => {
+              // Only show "Rate Writer" for completed orders
+              if (subdir.completedOnly && !isCompleted) {
+                return false;
+              }
+
               // Do not show "Edit Order" for cancelled or completed orders
               if (subdir.slug === "edit" && order.writer_assigned) {
                 return false;
@@ -153,6 +162,8 @@ export function FileExplorerItem({
                     : pathname.includes(`/${subdir.slug}`)
                 );
 
+              const isRateItem = subdir.slug === "rate";
+
               return (
                 <button
                   key={subdir.slug}
@@ -160,10 +171,14 @@ export function FileExplorerItem({
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
                     "hover:bg-accent/50 border-b border-border/30 last:border-b-0",
-                    isActive && "bg-primary/10 text-primary font-medium"
+                    isActive && "bg-primary/10 text-primary font-medium",
+                    isRateItem && "text-rating hover:bg-rating/10"
                   )}
                 >
-                  <Icon className="h-4 w-4 flex-shrink-0" />
+                  <Icon className={cn(
+                    "h-4 w-4 flex-shrink-0",
+                    isRateItem && "fill-rating/20"
+                  )} />
                   <span>{subdir.label}</span>
                 </button>
               );

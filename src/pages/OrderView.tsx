@@ -5,7 +5,7 @@ import api from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 
 import {
@@ -14,10 +14,12 @@ import {
   DollarSign,
   FileText,
   MessageSquare,
-  Calendar,
   Download,
-  CheckCircle2,
-  Loader2
+  Loader2,
+  BookOpen,
+  Quote,
+  Globe,
+  FileType,
 } from "lucide-react";
 
 import {
@@ -37,11 +39,31 @@ interface OrderFile {
   uploadedAt?: string;
 }
 
+interface Order {
+  id: string;
+  title: string;
+  subject: string;
+  type: string;
+  pages: number;
+  deadline: string | null;
+  budget: number;
+  status: string;
+  description?: string | null;
+  requirements?: string[];
+  files?: OrderFile[];
+  sources?: number;
+  citation_style?: string;
+  language?: string;
+  format?: string;
+  client_id?: string;
+  created_at: string;
+}
+
 export default function OrderView() {
   const { orderId } = useParams();
   const navigate = useNavigate();
 
-  const [order, setOrder] = useState<any>(null);
+  const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([]);
@@ -53,8 +75,6 @@ export default function OrderView() {
       setLoading(true);
       const res = await api.get(`/orders/${orderId}`);
       const data = res.data;
-
-      console.log(data);
 
       if (!data || !data.id) {
         throw new Error("Malformed response");
@@ -89,17 +109,21 @@ export default function OrderView() {
     fetchOrder();
   }, [orderId]);
 
-  const handleFileUpload = async () => {
+  const handleFileUpload = async (writerMessage: string) => {
     if (uploadFiles.length === 0) return;
 
     setIsUploading(true);
     try {
       const formData = new FormData();
       
-      uploadFiles.forEach((uploadFile, index) => {
+      uploadFiles.forEach((uploadFile) => {
         formData.append(`files`, uploadFile.file);
         formData.append(`file_types`, uploadFile.type);
       });
+
+      if (writerMessage.trim()) {
+        formData.append("message", writerMessage.trim());
+      }
 
       await api.post(`/orders/${orderId}/files`, formData, {
         headers: {
@@ -109,7 +133,7 @@ export default function OrderView() {
 
       toast({
         title: "Files uploaded",
-        description: `Successfully uploaded ${uploadFiles.length} file(s)`,
+        description: `Successfully uploaded ${uploadFiles.length} file(s)${writerMessage ? " with message" : ""}`,
       });
 
       setUploadFiles([]);
@@ -129,7 +153,6 @@ export default function OrderView() {
   function formatDeadlineRemaining(deadlineIso: string): string {
     const deadline = new Date(deadlineIso);
     const now = new Date();
-
     const diffMs = deadline.getTime() - now.getTime();
 
     if (isNaN(deadline.getTime())) return "Invalid deadline";
@@ -142,34 +165,21 @@ export default function OrderView() {
     if (days > 0) {
       return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
     }
-
     return `${hours} hour${hours !== 1 ? "s" : ""} left`;
   }
-
 
   function deadlineClass(deadlineIso: string) {
     const diffMs = new Date(deadlineIso).getTime() - Date.now();
     const hoursLeft = diffMs / (1000 * 60 * 60);
 
-    if (hoursLeft <= 6) return "text-red-600";
-    if (hoursLeft <= 24) return "text-orange-600";
-    return "text-amber-600";
+    if (hoursLeft <= 6) return "text-destructive";
+    if (hoursLeft <= 24) return "text-warning";
+    return "text-deadline";
   }
-
-  const getMilestoneStatus = (status: string) => {
-    switch (status) {
-      case "completed":
-        return { color: "text-green-600", icon: <CheckCircle2 className="h-5 w-5" /> };
-      case "in-progress":
-        return { color: "text-yellow-500", icon: <Clock className="h-5 w-5" /> };
-      default:
-        return { color: "text-muted-foreground", icon: <Clock className="h-5 w-5 opacity-50" /> };
-    }
-  };
 
   if (loading) {
     return (
-      <div className="p-6 flex justify-center">
+      <div className="flex items-center justify-center h-[70vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -177,14 +187,14 @@ export default function OrderView() {
 
   if (error || !order) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-6 p-6">
         <Button variant="ghost" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-muted-foreground">{error || "Order not found"}</p>
+        <Card className="shadow-card">
+          <CardContent className="p-6 text-center text-muted-foreground">
+            {error || "Order not found"}
           </CardContent>
         </Card>
       </div>
@@ -192,104 +202,214 @@ export default function OrderView() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+    <div className="h-full bg-background">
+      <div className="max-w-6xl mx-auto space-y-6 p-2 md:p-3">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <Button variant="ghost" className="gap-2 w-fit" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Orders
+          </Button>
 
-        <Button 
-          variant="outline"
-          onClick={() => navigate(`/writer/chats?order=${order.id}&client=${order.client_id}`)}
-        >
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Message Client
-        </Button>
-      </div>
-
-      {/* Order Header */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-        <div className="flex-1">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <h1 className="text-2xl font-bold">{order.title}</h1>
-            <Badge variant={order.status === "in_progress" ? "default" : "outline"}>
-              {order.status}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground">{order.id}</p>
+          <Button 
+            variant="outline"
+            onClick={() => navigate(`/writer/chats?order=${order.id}&client=${order.client_id}`)}
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Message Client
+          </Button>
         </div>
 
-        <div className="flex flex-col items-start lg:items-end gap-2">
-          <div className="flex items-center text-3xl font-bold text-primary mb-1">
-            <DollarSign className="h-6 w-6" />
-            {order.budget}
+        {/* Title Section */}
+        <Card className="border-none p-4 shadow-card animate-fade-in">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold text-foreground">
+                {order.title}
+              </h1>
+              <p className="text-sm text-muted-foreground font-mono">
+                Order ID: {order.id}
+              </p>
+            </div>
+            <div className="flex flex-col items-start sm:items-end gap-2">
+              <div className="flex items-center text-3xl font-bold text-primary">
+                <DollarSign className="h-7 w-7" />
+                {order.budget}
+              </div>
+              <Badge variant="status" className="capitalize">
+                {order.status.replace("_", " ")}
+              </Badge>
+            </div>
           </div>
-          <Badge variant="outline">{order.subject}</Badge>
-        </div>
-      </div>
+        </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* MAIN CONTENT */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardContent className="p-6">
-              <Tabs defaultValue="overview">
-                <TabsList className="w-full justify-start">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  <TabsTrigger value="files">Files ({order.files.length})</TabsTrigger>
-                </TabsList>
+        {/* Order Summary */}
+        <Card className="shadow-card animate-fade-in" style={{ animationDelay: "50ms" }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">
+              Order Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="subject">{order.subject}</Badge>
+              <span className="text-sm text-muted-foreground">{order.type}</span>
+            </div>
 
-                {/* OVERVIEW TAB */}
-                <TabsContent value="overview" className="space-y-6 mt-6">
-                  <div>
-                    <h3 className="font-semibold mb-2">Description</h3>
-                    <p className="text-muted-foreground">{order.description}</p>
-                  </div>
-                </TabsContent>
+            <Separator className="bg-border/50" />
 
-                {/* FILES TAB */}
-                <TabsContent value="files" className="mt-6">
-                  {order.files.length > 0 ? (
-                    <div className="space-y-3">
-                      {order.files.map((file: OrderFile) => (
-                        <div 
-                          key={file.id}
-                          className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors"
-                        >
-                          <div
-                            onClick={() => openPreview(file.url, file.name)}
-                            className="cursor-pointer flex items-center space-x-3 hover:bg-accent p-2 rounded-lg transition flex-1"
-                          >
-                            <FileText className="h-5 w-5 text-muted-foreground" />
-                            <p className="font-medium truncate max-w-[120px] sm:max-w-[180px] md:max-w-[250px]">
-                              {file.name}
-                            </p>
-                          </div>
-
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => downloadFile(file.url, file.name)}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Deadline */}
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-muted">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Deadline</p>
+                  {order.deadline ? (
+                    <p className={`text-sm font-semibold ${deadlineClass(order.deadline)}`}>
+                      {formatDeadlineRemaining(order.deadline)}
+                    </p>
                   ) : (
-                    <div className="text-center py-8">
-                      <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-muted-foreground">No files uploaded yet</p>
-                    </div>
+                    <p className="text-sm font-semibold text-foreground">No deadline</p>
                   )}
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
+                </div>
+              </div>
 
-          {/* FILE UPLOAD SECTION */}
+              {/* Pages */}
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-muted">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Pages</p>
+                  <p className="text-sm font-semibold text-foreground">{order.pages} pages</p>
+                </div>
+              </div>
+
+              {/* Sources */}
+              {order.sources !== undefined && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Sources</p>
+                    <p className="text-sm font-semibold text-foreground">{order.sources} sources</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Citation */}
+              {order.citation_style && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Quote className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Citation</p>
+                    <p className="text-sm font-semibold text-foreground">{order.citation_style}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Language */}
+              {order.language && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Language</p>
+                    <p className="text-sm font-semibold text-foreground">{order.language}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Format */}
+              {order.format && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <FileType className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Format</p>
+                    <p className="text-sm font-semibold text-foreground">{order.format}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Description */}
+        <Card className="shadow-card animate-fade-in" style={{ animationDelay: "100ms" }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">Description</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              {order.description || "No description provided."}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Attached Files */}
+        <Card className="shadow-card animate-fade-in" style={{ animationDelay: "150ms" }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">
+              Attached Files ({order.files?.length || 0})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {order.files && order.files.length > 0 ? (
+              <div className="space-y-3">
+                {order.files.map((file) => (
+                  <div
+                    key={file.id}
+                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                  >
+                    <div
+                      className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
+                      onClick={() => openPreview(file.url, file.name)}
+                    >
+                      <div className="p-2 rounded-md bg-primary/10 shrink-0">
+                        <FileText className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Click to preview
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="rounded-full shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadFile(file.url, file.name);
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="p-3 rounded-full bg-muted w-fit mx-auto mb-3">
+                  <FileText className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">No files attached</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* File Upload Section */}
+        <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
           <FileUploadSection
             files={uploadFiles}
             onFilesChange={setUploadFiles}
@@ -298,76 +418,32 @@ export default function OrderView() {
           />
         </div>
 
-        {/* SIDEBAR */}
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Details</CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <div className="flex items-center text-sm">
-                <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Type</p>
-                  <p className="text-muted-foreground">
-                    {order.type} • {order.pages} pages
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Created</p>
-                  <p className="text-muted-foreground">
-                    {new Date(order.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center text-sm">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Deadline</p>
-                  {order.deadline && (
-                    <span className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>
-                      {/*<Clock className="h-3 w-3 mr-1" />*/}
-                      {formatDeadlineRemaining(order.deadline)}
-                    </span>
-                    )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button className="w-full" variant="outline">
-                Request Revision
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Quick Actions */}
+        <Card className="shadow-card animate-fade-in" style={{ animationDelay: "250ms" }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button className="w-full" variant="outline">
+              Request Revision
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       {/* File Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={closePreview}>
         <DialogContent
           forceMount
-          className="z-50 m-0 p-0 gap-0 w-full h-full max-w-none bg-background border-none rounded-none overflow-hidden flex flex-col overflow-y-auto"
+          className="z-50 m-0 p-0 gap-0 w-full h-full max-w-none bg-background border-none rounded-none overflow-hidden flex flex-col"
         >
-          <DialogHeader className="flex items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 py-1 shrink-0">
+          <DialogHeader className="flex items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 py-3 shrink-0">
             <DialogTitle className="text-lg font-semibold">
               {previewFile?.name || "Preview"}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 flex items-center justify-center bg-muted/10 relative">
+          <div className="flex-1 flex items-center justify-center bg-muted/10 relative overflow-auto">
             {previewFile?.type === "loading" && (
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -378,7 +454,7 @@ export default function OrderView() {
             {previewFile?.type === "pdf" && previewFile.url && (
               <iframe
                 src={`${previewFile.url}#toolbar=0`}
-                className="w-full h-full border-0 bg-white"
+                className="w-full h-full border-0 bg-card"
                 title={previewFile.name}
               />
             )}
@@ -397,7 +473,6 @@ export default function OrderView() {
                   <p className="text-muted-foreground">
                     Preview unavailable for this file type.
                   </p>
-
                   <Button
                     variant="outline"
                     size="sm"
@@ -412,7 +487,7 @@ export default function OrderView() {
                     Download to View
                   </Button>
                 </div>
-            )}
+              )}
           </div>
         </DialogContent>
       </Dialog>

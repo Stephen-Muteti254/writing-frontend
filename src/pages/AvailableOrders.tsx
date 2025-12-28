@@ -409,7 +409,6 @@ export default function AvailableOrders() {
                   transition
                   cursor-pointer
                   hover:bg-muted/40
-                  hover:shadow-md
                   focus-within:bg-muted/40
                   focus-within:shadow-md
                   border

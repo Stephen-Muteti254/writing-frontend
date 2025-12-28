@@ -298,7 +298,7 @@ const WriterApplication = () => {
           title: "Application submitted",
           description: "Your writer application has been received and is under review.",
         });
-        navigate("/application-pending");
+        navigate("/writer-onboarding/pending");
       } else {
         toast({
           title: "Submission failed",

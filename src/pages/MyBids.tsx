@@ -273,7 +273,10 @@ export default function MyBids() {
                               size="sm"
                               variant="outline"
                               className="rounded-none border-0 shadow-none"
-                              onClick={() => navigate(`/writer/my-bids/edit/${bid.id}`)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/writer/my-bids/edit/${bid.id}`)}
+                              }
                             >
                               <Edit className="h-4 w-4" />
                             </Button>

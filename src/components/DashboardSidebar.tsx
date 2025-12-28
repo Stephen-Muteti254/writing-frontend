@@ -41,6 +41,8 @@ import { useNotificationContext } from "@/contexts/NotificationContext";
 import { useChatContext } from "@/contexts/ChatContext";
 import { useProfileModal } from "@/contexts/ProfileModalContext";
 import { triggerSupportChat } from '@/contexts/SupportChatContext';
+import LightLogo from "@/assets/light-mini-logo.PNG";
+import DarkLogo from "@/assets/dark-mini-logo.PNG";
 
 const menuItems = [
   { title: "My Orders", url: "/writer/orders/in-progress/all", base: "/writer/orders", icon: FileText },
@@ -88,37 +90,51 @@ export function DashboardSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       {/* Profile Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center space-x-3 flex-1 min-w-0">
+      <div className="grid grid-cols-3 items-center p-4 border-b border-border">
+
+        {/* Logo (left 50%) */}
+        <div className="flex justify-center items-center">
           {open && (
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-brand-primary to-brand-primary/80 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">{getInitials(user?.full_name)}</span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <h1 className="font-semibold text-sm truncate">{user?.full_name || "User"}</h1>
-                {/*<p className="text-xs text-muted-foreground truncate">{user?.role || "Writer"}</p>*/}
-              </div>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+              <img
+                src={LightLogo}
+                alt="AcademicHub"
+                className="w-8 h-auto block dark:hidden"
+              />
+              <img
+                src={DarkLogo}
+                alt="AcademicHub"
+                className="w-8 h-auto hidden dark:block"
+              />
             </div>
           )}
         </div>
 
-        {/* Desktop Theme Toggle + Profile Dropdown */}
-        <div className="hidden lg:flex items-center space-x-2">
+        {/* Theme toggle (center) */}
+        <div className="flex justify-center items-center">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="h-8 w-8 p-0"
           >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
           </Button>
+        </div>
 
+        {/* Profile dropdown trigger (right 50%) */}
+        <div className="flex justify-center items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <div className="w-6 h-6 bg-brand-primary rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-medium">{getInitials(user?.full_name)}</span>
+                  <span className="text-white text-xs font-medium">
+                    {getInitials(user?.full_name)}
+                  </span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
@@ -152,6 +168,7 @@ export function DashboardSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
       </div>
 
       {/* Sidebar Menu */}
@@ -185,6 +202,7 @@ export function DashboardSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
+      {/* Support Footer */}
       {/* Support Footer */}
       <div
         className="border-t border-border p-4 mt-auto cursor-pointer"

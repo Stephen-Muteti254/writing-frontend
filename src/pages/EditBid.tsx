@@ -19,21 +19,20 @@ import {
   MessageCircle,
   FileText,
   Calendar,
-  User,
-  ChevronRight,
   CheckCircle,
   XCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
-import { StatusBadge } from "@/components/StatusBadge";
 import { ChatPanel } from "@/components/ChatPanel";
+import { OrderInfoCard } from "@/components/OrderInfoCard";
 
 interface Bid {
   id: string;
   order_id: string;
   order_title?: string;
-  bid_amount: number;
+  bid_amount?: number;
+  amount?: number;
   original_budget?: number;
   status: string;
   message?: string;
@@ -45,10 +44,18 @@ interface Bid {
 interface Order {
   id: string;
   title: string;
+  subject?: string;
+  type?: string;
   budget: number;
   deadline: string;
   pages: number;
   description?: string;
+  files?: string[];
+  sources?: number;
+  citation?: string;
+  language?: string;
+  format?: string;
+  status?: string;
   client?: {
     id: string;
     name: string;
@@ -75,13 +82,9 @@ export default function EditBid() {
   const [deadline, setDeadline] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
-
   const [chatOpen, setChatOpen] = useState(true);
   
-  // Get chat_id from URL params if available (passed from PlaceBid)
   const chatIdFromUrl = searchParams.get("chat");
-  
-  // Current user ID from localStorage
   const currentUserId = localStorage.getItem("user_id") || "current-user";
 
   useEffect(() => {
@@ -104,29 +107,29 @@ export default function EditBid() {
     try {
       setLoading(true);
       const bidRes = await api.get(`/bids/${bidId}`);
-      const bidData = bidRes.data.data || bidRes.data;
-      setBid(bidData);
+      const bidData = (bidRes.data as any).data || bidRes.data;
+      setBid(bidData as Bid);
 
-      // Fetch order details
       const orderRes = await api.get(`/orders/${bidData.order_id}`);
-    const orderData = orderRes.data;
-    setOrder(orderData);
+      const orderData = orderRes.data as Order;
+      setOrder(orderData);
 
-      // Pre-fill form
       setBidAmount(bidData.bid_amount?.toString() || bidData.amount?.toString() || "");
       setMessage(bidData.message || "");
       setDeadline(bidData.response_deadline ? new Date(bidData.response_deadline).toISOString().slice(0, 16) : "");
 
-      if (bidData && orderRes.data) {
+      if (bidData && orderData) {
         try {
           const chatRes = await api.post("/chats", {
             order_id: bidData.order_id,
             writer_id: currentUserId,
             client_id: orderData.client?.id
           });
-
-          const chat = chatRes.data.data.chat;
-          setChatId(chat.id);
+          const chatData = chatRes.data as any;
+          const chat = chatData.data?.chat;
+          if (chat?.id) {
+            setChatId(chat.id);
+          }
         } catch (error) {
           console.error("Failed to fetch or create chat:", error);
         }
@@ -145,12 +148,11 @@ export default function EditBid() {
   };
 
   function formatDeadlineRemaining(deadlineIso: string): string {
-    const deadline = new Date(deadlineIso);
+    const dl = new Date(deadlineIso);
     const now = new Date();
+    const diffMs = dl.getTime() - now.getTime();
 
-    const diffMs = deadline.getTime() - now.getTime();
-
-    if (isNaN(deadline.getTime())) return "Invalid deadline";
+    if (isNaN(dl.getTime())) return "Invalid deadline";
     if (diffMs <= 0) return "Expired";
 
     const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -160,22 +162,20 @@ export default function EditBid() {
     if (days > 0) {
       return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
     }
-
     return `${hours} hour${hours !== 1 ? "s" : ""} left`;
   }
-
 
   function deadlineClass(deadlineIso: string) {
     const diffMs = new Date(deadlineIso).getTime() - Date.now();
     const hoursLeft = diffMs / (1000 * 60 * 60);
 
-    if (hoursLeft <= 6) return "text-red-600";
-    if (hoursLeft <= 24) return "text-orange-600";
-    return "text-amber-600";
+    if (hoursLeft <= 6) return "text-destructive";
+    if (hoursLeft <= 24) return "text-warning";
+    return "text-deadline";
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    if (viewOnly) return null;
+    if (viewOnly) return;
     e.preventDefault();
 
     if (!bidAmount || !message) {
@@ -224,12 +224,60 @@ export default function EditBid() {
     }
   };
 
+  const handleConfirmBid = async () => {
+    if (!bidAmount || !message) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (order && parseFloat(bidAmount) < order.budget) {
+      toast({
+        title: "Invalid Bid Amount",
+        description: "Your bid cannot be less than the client's budget",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsConfirming(true);
+    try {
+      const payload = {
+        amount: parseFloat(bidAmount),
+        message,
+        status: "pending",
+        ...(deadline && { deadline }),
+      };
+
+      await api.put(`/bids/${bidId}`, payload);
+
+      toast({
+        title: "Bid Confirmed!",
+        description: "Your bid has been confirmed and submitted.",
+      });
+
+      navigate("/writer/my-bids");
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Failed to Confirm Bid",
+        description: error.response?.data?.message || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
   const getStatusConfig = (status: string) => {
     switch (status) {
       case "accepted":
         return { 
           label: "Accepted", 
-          className: "bg-green-500/10 text-green-600 border-green-500/20",
+          className: "bg-success/10 text-success border-success/20",
           icon: CheckCircle
         };
       case "rejected":
@@ -248,16 +296,30 @@ export default function EditBid() {
       case "unconfirmed":
         return { 
           label: "Unconfirmed", 
-          className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+          className: "bg-warning/10 text-warning border-warning/20",
           icon: AlertCircle
         };
       default:
         return { 
           label: "Pending", 
-          className: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+          className: "bg-warning/10 text-warning border-warning/20",
           icon: Clock
         };
     }
+  };
+
+  const handleDownloadFile = (url: string, name?: string) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = name || url.split("/").pop() || "file";
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handlePreviewFile = (url: string, name: string) => {
+    window.open(url, "_blank");
   };
 
   if (loading) {
@@ -286,16 +348,16 @@ export default function EditBid() {
     );
   }
 
-  const originalAmount = bid.amount || 0;
+  const originalAmount = bid.amount || bid.bid_amount || 0;
   const amountChanged = parseFloat(bidAmount) !== originalAmount;
   const statusConfig = getStatusConfig(bid.status);
   const StatusIcon = statusConfig.icon;
 
-  // VIEW ONLY MODE - Clean display similar to BidView
+  // VIEW ONLY MODE
   if (viewOnly) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Top Bar with Order Info */}
+        {/* Top Bar */}
         <div className="sticky top-0 z-40 bg-card/95 backdrop-blur border-b border-border">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-4">
@@ -333,16 +395,8 @@ export default function EditBid() {
                       state: { viewOnly: false }
                     })
                   }
-                  disabled={isConfirming}
                 >
-                  {isConfirming ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Confirming...
-                    </>
-                  ) : (
-                    "Confirm Bid / Edit"
-                  )}
+                  Confirm Bid / Edit
                 </Button>
               ) : bid.status !== "cancelled" && bid.status !== "withdrawn" ? (
                 <Button
@@ -370,11 +424,11 @@ export default function EditBid() {
           )}>
             {/* Alert Banner for Unconfirmed */}
             {bid.status === "unconfirmed" && (
-              <Card className="border-l-4 border-l-yellow-500 bg-yellow-500/10">
+              <Card className="border-l-4 border-l-warning bg-warning/10">
                 <CardContent className="p-4 flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                  <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
                   <div className="space-y-1">
-                    <p className="font-medium text-yellow-700">Order Updated</p>
+                    <p className="font-medium text-warning">Order Updated</p>
                     <p className="text-sm text-muted-foreground">
                       The client made changes to the order after you submitted your bid.  
                       Please review and confirm to proceed.
@@ -384,46 +438,17 @@ export default function EditBid() {
               </Card>
             )}
 
-            {/* Order Summary Card */}
-            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <DollarSign className="h-3 w-3" /> Budget
-                    </p>
-                    <p className="font-semibold text-foreground">${order.budget}</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <FileText className="h-3 w-3" /> Pages
-                    </p>
-                    <p className="font-semibold text-foreground">{order.pages} pages</p>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> Deadline
-                    </p>
-                    {order.deadline && (
-                      <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
-                        {formatDeadlineRemaining(order.deadline)}
-                      </p>
-                    )}
-                  </div>
-                  {/*{order.client && (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <User className="h-3 w-3" /> Client
-                      </p>
-                      <p className="font-semibold text-foreground">{order.client.name}</p>
-                    </div>
-                  )}*/}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Order Info Card */}
+            <OrderInfoCard
+              order={order}
+              defaultExpanded={true}
+              onViewFullDetails={() => navigate(`/writer/available-orders/${order.id}`)}
+              onDownloadFile={handleDownloadFile}
+              onPreviewFile={handlePreviewFile}
+            />
 
             {/* Bid Details Card */}
-            <Card>
+            <Card className="shadow-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -433,7 +458,6 @@ export default function EditBid() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Bid Amount & Deadline Row */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-muted/50 rounded-xl p-4 space-y-1">
                     <p className="text-sm text-muted-foreground">Bid Amount</p>
@@ -443,7 +467,7 @@ export default function EditBid() {
                     <div className="bg-muted/50 rounded-xl p-4 space-y-1">
                       <p className="text-sm text-muted-foreground">Proposed Deadline</p>
                       {order.deadline && (
-                        <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
+                        <p className={cn("text-lg font-medium", deadlineClass(order.deadline))}>
                           {formatDeadlineRemaining(order.deadline)}
                         </p>
                       )}
@@ -453,7 +477,6 @@ export default function EditBid() {
 
                 <Separator />
 
-                {/* Proposal */}
                 <div className="space-y-3">
                   <h3 className="font-medium text-foreground flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
@@ -466,7 +489,6 @@ export default function EditBid() {
 
                 <Separator />
 
-                {/* Metadata */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
@@ -487,16 +509,8 @@ export default function EditBid() {
                       state: { viewOnly: false }
                     })
                   }
-                  disabled={isConfirming}
                 >
-                  {isConfirming ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Confirming...
-                    </>
-                  ) : (
-                    "Confirm Bid / Edit"
-                  )}
+                  Confirm Bid / Edit
                 </Button>
               ) : bid.status !== "cancelled" && bid.status !== "withdrawn" ? (
                 <Button
@@ -549,9 +563,9 @@ export default function EditBid() {
     );
   }
 
-  // EDIT MODE
+  // EDIT / CONFIRM MODE
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 lg:p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={() => navigate(-1)}>
@@ -560,27 +574,56 @@ export default function EditBid() {
         </Button>
       </div>
 
-      {/* Alert Banner */}
-      <Card className="border-l-4 border-l-yellow-500 bg-yellow-500/5">
-        <CardContent className="p-4 flex items-start gap-3">
-          <AlertCircle className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <p className="font-medium">Editing Your Bid</p>
-            <p className="text-sm text-muted-foreground">
-              You can update your bid amount and proposal. The client will be notified of any changes.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Alert Banner for Unconfirmed */}
+      {bid.status === "unconfirmed" ? (
+        <Card className="border-l-4 border-l-warning bg-warning/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-medium">Confirm Your Bid</p>
+              <p className="text-sm text-muted-foreground">
+                The order has been updated. Review the changes, adjust your bid if needed, and click Confirm to proceed.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-l-4 border-l-primary bg-primary/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <Edit className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-medium">Edit Your Bid</p>
+              <p className="text-sm text-muted-foreground">
+                Update your bid amount and proposal. The client will be notified of any changes.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column: Edit Form */}
-        <div className="lg:col-span-2">
-          <Card>
+        {/* Left Column: Order Info + Edit Form */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Order Info Card */}
+          <OrderInfoCard
+            order={order}
+            defaultExpanded={false}
+            onViewFullDetails={() => navigate(`/writer/available-orders/${order.id}`)}
+            onDownloadFile={handleDownloadFile}
+            onPreviewFile={handlePreviewFile}
+          />
+
+          {/* Edit Form */}
+          <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Edit Your Bid</CardTitle>
+              <CardTitle>
+                {bid.status === "unconfirmed" ? "Review & Confirm Your Bid" : "Edit Your Bid"}
+              </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Update your proposal for this project
+                {bid.status === "unconfirmed" 
+                  ? "Update your proposal if needed and confirm to submit"
+                  : "Update your proposal for this project"
+                }
               </p>
             </CardHeader>
             <CardContent>
@@ -603,7 +646,12 @@ export default function EditBid() {
                         </div>
                         <Badge 
                           variant="secondary" 
-                          className={parseFloat(bidAmount) < originalAmount ? "bg-green-500/10 text-green-600 mt-2" : "bg-red-500/10 text-red-600 mt-2"}
+                          className={cn(
+                            "mt-2",
+                            parseFloat(bidAmount) < originalAmount 
+                              ? "bg-success/10 text-success" 
+                              : "bg-destructive/10 text-destructive"
+                          )}
                         >
                           {parseFloat(bidAmount) < originalAmount ? "Lower" : "Higher"} by $
                           {Math.abs(parseFloat(bidAmount) - originalAmount).toFixed(2)}
@@ -621,7 +669,7 @@ export default function EditBid() {
                     <Input
                       id="bidAmount"
                       type="number"
-                      placeholder="Enter your new bid amount"
+                      placeholder="Enter your bid amount"
                       className="pl-9"
                       value={bidAmount}
                       onChange={(e) => setBidAmount(e.target.value)}
@@ -637,7 +685,9 @@ export default function EditBid() {
                 
                 {/* Proposal Message */}
                 <div className="space-y-2">
-                  <Label htmlFor="message">Updated Proposal *</Label>
+                  <Label htmlFor="message">
+                    {bid.status === "unconfirmed" ? "Your Proposal *" : "Updated Proposal *"}
+                  </Label>
                   <Textarea
                     id="message"
                     placeholder="Update your proposal message..."
@@ -652,82 +702,60 @@ export default function EditBid() {
                 </div>
 
                 {/* Submit Buttons */}
-                <div className="flex space-x-3 pt-4">
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                   <Button
                     type="button"
                     variant="outline"
                     className="flex-1"
                     onClick={() => navigate(-1)}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isConfirming}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" className="flex-1" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
+                  
+                  {bid.status === "unconfirmed" ? (
+                    <Button 
+                      type="button"
+                      className="flex-1" 
+                      disabled={isConfirming}
+                      onClick={handleConfirmBid}
+                    >
+                      {isConfirming ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Confirming...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Confirm Bid
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </form>
             </CardContent>
           </Card>
         </div>
 
-        {/* Right Column: Order Summary */}
+        {/* Right Column: Original Bid Info */}
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Order Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Project</p>
-                <p className="font-medium">{order.title}</p>
-                <p className="text-xs text-muted-foreground mt-1">{order.id}</p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Client Budget</span>
-                  <div className="flex items-center font-medium">
-                    <DollarSign className="h-4 w-4" />
-                    {order.budget}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Length</span>
-                  <div className="flex items-center text-sm">
-                    {order.pages} pages
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Deadline</span>
-                  <div className="flex items-center text-sm">
-                    <Clock className="h-4 w-4 mr-1" />
-                    {order.deadline && (
-                      <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
-                        {formatDeadlineRemaining(order.deadline)}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-primary bg-primary/5">
+          <Card className="border-l-4 border-l-primary bg-primary/5 shadow-card">
             <CardContent className="p-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium">Original Bid</p>
@@ -738,6 +766,33 @@ export default function EditBid() {
                 <p className="text-xs text-muted-foreground">
                   Submitted {bid.submitted_at ? new Date(bid.submitted_at).toLocaleDateString() : "—"}
                 </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Quick Stats</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Client Budget</span>
+                <div className="flex items-center font-medium">
+                  <DollarSign className="h-4 w-4" />
+                  {order.budget}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Pages</span>
+                <span className="text-sm font-medium">{order.pages} pages</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Deadline</span>
+                {order.deadline && (
+                  <span className={cn("text-sm font-medium", deadlineClass(order.deadline))}>
+                    {formatDeadlineRemaining(order.deadline)}
+                  </span>
+                )}
               </div>
             </CardContent>
           </Card>

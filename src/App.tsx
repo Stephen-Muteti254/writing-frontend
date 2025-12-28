@@ -62,6 +62,8 @@ import SuspensionGuard from "@/components/guards/SuspensionGuard";
 import ApplicationStatusGuard from "@/components/guards/ApplicationStatusGuard";
 import { Suspense } from "react";
 import PageLoader from "@/components/PageLoader";
+import ClientWallet from "./pages/client/ClientWallet";
+import RateWriter from "./pages/client/RateWriter";
 
 const queryClient = new QueryClient();
 
@@ -153,6 +155,7 @@ const App = () => (
 
                           {/* Orders */}
                           <Route path="orders/:tab" element={<Lazy.NewClientOrders />}>
+
                             <Route path=":orderId" element={<Lazy.OrderDetails />} />
                             <Route path=":orderId/edit" element={<OrderFormPage />} />
                             <Route
@@ -163,6 +166,7 @@ const App = () => (
                               path=":orderId/submissions"
                               element={<OrderSubmissions />}
                             />
+                            <Route path=":orderId/rate" element={<RateWriter />} />
                             <Route path="create" element={<OrderFormPage />} />
                           </Route>
 
@@ -174,6 +178,8 @@ const App = () => (
 
                           {/* Notifications */}
                           <Route path="notifications" element={<Notifications />} />
+
+                          <Route path="wallet" element={<ClientWallet />} />
 
                           <Route
                             path="*"

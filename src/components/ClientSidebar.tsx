@@ -10,7 +10,8 @@ import {
   Sun,
   Moon,
   HeadphonesIcon,
-  ClipboardList
+  ClipboardList,
+  Wallet
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,11 +35,14 @@ import {
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotificationContext } from "@/contexts/NotificationContext";
-import { useChatContext } from "@/contexts/ChatContext"; // Add ChatContext
+import { useChatContext } from "@/contexts/ChatContext";
 import { triggerSupportChat } from '@/contexts/SupportChatContext';
+import LightLogo from "@/assets/light-mini-logo.PNG";
+import DarkLogo from "@/assets/dark-mini-logo.PNG";
 
 const menuItems = [
   { title: "My Orders", url: "/client/orders", icon: FileText },
+  { title: "Wallet", url: "/client/wallet", icon: Wallet },
   { title: "Chats", url: "/client/chats", icon: MessageSquare },
   { title: "Notifications", url: "/client/notifications", icon: Bell },
 ];
@@ -76,37 +80,55 @@ export function ClientSidebar() {
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       {/* Profile Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border">
-        <div className="flex items-center space-x-3 flex-1 min-w-0">
+      <div className="grid grid-cols-3 items-center p-4 border-b border-border">
+        
+        {/* Logo (left) */}
+        <div className="flex justify-center items-center">
           {open && (
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-brand-primary to-brand-primary/80 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">WP</span>
-              </div>
-              <h1 className="font-bold text-lg text-foreground truncate">WriterPro</h1>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center">
+              <img
+                src={LightLogo}
+                alt="AcademicHub"
+                className="h-5 w-auto block dark:hidden"
+              />
+              <img
+                src={DarkLogo}
+                alt="AcademicHub"
+                className="h-5 w-auto hidden dark:block"
+              />
             </div>
           )}
         </div>
 
-        {/* Desktop theme toggle and profile dropdown */}
-        <div className="hidden lg:flex items-center space-x-2">
+        {/* Theme toggle (center) */}
+        <div className="flex justify-center items-center">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="h-8 w-8 p-0"
           >
-            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
           </Button>
+        </div>
 
+        {/* Profile dropdown (right) */}
+        <div className="flex justify-center items-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 <div className="w-6 h-6 bg-brand-primary rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-medium">{getInitials(user?.full_name)}</span>
+                  <span className="text-white text-xs font-medium">
+                    {getInitials(user?.full_name)}
+                  </span>
                 </div>
               </Button>
             </DropdownMenuTrigger>
+
             <DropdownMenuContent align="end" className="w-56">
               <div className="flex items-center space-x-2 p-2">
                 <div className="w-8 h-8 bg-brand-primary rounded-full flex items-center justify-center">
@@ -141,7 +163,9 @@ export function ClientSidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
       </div>
+
 
       <SidebarContent className="px-2 py-4">
         <SidebarGroup>

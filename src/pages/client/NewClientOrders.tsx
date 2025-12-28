@@ -200,7 +200,7 @@ export default function ClientOrders() {
   return (
     <div className="h-screen flex flex-col bg-background">
       {/* Header */}
-      <div className="border-b border-border px-6 py-4 flex items-center justify-between">
+      <div className="border-b border-border px-3 py-2 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-foreground">My Orders</h1>
         <Button
           onClick={() => navigate(`/client/orders/${tab}/create`)}
@@ -283,7 +283,7 @@ export default function ClientOrders() {
         </div>
 
       {/* Right Panel - Order Details */}
-      <div className="flex-1 bg-background overflow-hidden pl-2 lg:pl-3">
+      <div className="flex-1 bg-background overflow-y-auto pl-2 lg:pl-3">
         {orderId || isCreate ? (
           <Outlet context={{ openCancelDialog }} />
         ) : (

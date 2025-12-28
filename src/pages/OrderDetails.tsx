@@ -15,8 +15,13 @@ import {
   X,
   Edit,
   MessageSquare,
+  BookOpen,
+  Quote,
+  Globe,
+  FileType,
+  Layers,
 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -25,7 +30,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useFileViewer } from "@/hooks/useFileViewer";
 import {
   AlertDialog,
@@ -37,6 +41,7 @@ import {
   AlertDialogTitle,
   AlertDialogDescription
 } from "@/components/ui/alert-dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Order {
   id: string;
@@ -51,6 +56,10 @@ interface Order {
   requirements?: string | null;
   progress?: number;
   files?: string[];
+  sources?: number;
+  citation?: string;
+  language?: string;
+  format?: string;
   client?: {
     id: string;
     name: string;
@@ -62,28 +71,25 @@ interface Order {
     name: string;
     avatar?: string;
   };
-  writer_id?: string; // if backend sends it
-  writer_assigned?: boolean; // ← NEW
+  writer_id?: string;
+  writer_assigned?: boolean;
   created_at: string;
   updated_at?: string;
 }
 
-
 export default function OrderDetails() {
   const navigate = useNavigate();
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
-  const { orderId, tab, bidTab } = useParams();
+  const { orderId, tab } = useParams();
   const outletCtx = useOutletContext<any>() || {};
   const openCancelDialog = outletCtx.openCancelDialog || (() => {});
   const { previewFile, openPreview, closePreview, downloadFile } = useFileViewer();
   const [declineOpen, setDeclineOpen] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
 
-  /** -------------------------------
-   *  Fetch Order Details
-   *  ------------------------------*/
+  /** Fetch Order Details */
   const fetchOrderDetails = async () => {
     try {
       setLoading(true);
@@ -124,11 +130,9 @@ export default function OrderDetails() {
     }
   };
 
-
   function formatDeadlineRemaining(deadlineIso: string): string {
     const deadline = new Date(deadlineIso);
     const now = new Date();
-
     const diffMs = deadline.getTime() - now.getTime();
 
     if (isNaN(deadline.getTime())) return "Invalid deadline";
@@ -141,27 +145,23 @@ export default function OrderDetails() {
     if (days > 0) {
       return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
     }
-
     return `${hours} hour${hours !== 1 ? "s" : ""} left`;
   }
-
 
   function deadlineClass(deadlineIso: string) {
     const diffMs = new Date(deadlineIso).getTime() - Date.now();
     const hoursLeft = diffMs / (1000 * 60 * 60);
 
-    if (hoursLeft <= 6) return "text-red-600";
-    if (hoursLeft <= 24) return "text-orange-600";
-    return "text-amber-600";
+    if (hoursLeft <= 6) return "text-destructive";
+    if (hoursLeft <= 24) return "text-warning";
+    return "text-deadline";
   }
 
   useEffect(() => {
     if (orderId) fetchOrderDetails();
   }, [orderId]);
 
-  /** -------------------------------
-   *  Loading & Not Found States
-   *  ------------------------------*/
+  /** Loading State */
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
@@ -170,6 +170,7 @@ export default function OrderDetails() {
     );
   }
 
+  /** Not Found State */
   if (!order) {
     return (
       <div className="space-y-6 p-6">
@@ -186,78 +187,171 @@ export default function OrderDetails() {
     );
   }
 
-  /** -------------------------------
-   *  UI
-   *  ------------------------------*/
   return (
-      <div className="space-y-4 lg:px-0 pb-10">
-
-      {/* Header */}
-      {user?.role !== "client" && (
-        <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Available Orders
-          </Button>        
-          <Button variant="outline" onClick={() => navigate(`/writer/place-bid/${order.id}`)}>
-            Place Bid
-          </Button>
-        </div>
+    <div className="h-full bg-background">
+      {/*<ScrollArea className="h-[calc(100dvh-4rem)]">*/}
+      <div className="max-w-6xl mx-auto space-y-6 pr-3">
+        {/* Header */}
+        {user?.role !== "client" && (
+          <div className="flex items-center justify-between">
+            <Button variant="ghost" className="gap-2" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Available Orders
+            </Button>
+            <Button onClick={() => navigate(`/writer/place-bid/${order.id}`)}>
+              Place Bid
+            </Button>
+          </div>
         )}
 
-      {/* Title Section */}
-      <Card className="p-2 border-none">
-        <CardHeader className="p-0">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-            <div>
-              <CardTitle className="text-2xl font-bold">{order.title}</CardTitle>
-              <p className="text-sm text-muted-foreground">Order ID: {order.id}</p>
-            </div>
-            <div className="flex flex-col items-start lg:items-end">
-              <div className="flex items-center text-3xl font-bold text-primary mb-1">
-                <DollarSign className="h-6 w-6 mr-1" />
-                {order.budget}
+        {/* Title Section */}
+        <Card className="border-none p-2 mt-2 shadow-card">
+          <CardHeader className="p-0">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div className="space-y-1">
+                <CardTitle className="text-2xl font-bold text-foreground">
+                  {order.title}
+                </CardTitle>
+                <p className="text-sm text-muted-foreground font-mono">
+                  Order ID: {order.id}
+                </p>
               </div>
-              <Badge
-                variant="outline"
-                className="border-primary text-primary capitalize"
-              >
-                {order.status}
-              </Badge>
+              <div className="flex flex-col items-start sm:items-end gap-2">
+                <div className="flex items-center text-3xl font-bold text-primary">
+                  <DollarSign className="h-7 w-7" />
+                  {order.budget}
+                </div>
+                <Badge variant="status" className="capitalize">
+                  {order.status.replace("_", " ")}
+                </Badge>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-      </Card>
+          </CardHeader>
+        </Card>
 
-      {/* Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* LEFT COLUMN */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Description */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Description</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                {order.description || "No description provided."}
-              </p>
-            </CardContent>
-          </Card>
+        {/* Order Summary */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold flex items-center gap-2">
+              {/*<Layers className="h-5 w-5 text-primary" />*/}
+              Order Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="subject">{order.subject}</Badge>
+              <span className="text-sm text-muted-foreground">{order.type}</span>
+            </div>
 
-          {/* Files */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Attached Files</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {order.files && order.files.length > 0 ? (
-                order.files.map((fileUrl, index) => (
+            <Separator className="bg-border/50" />
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Deadline */}
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-muted">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Deadline</p>
+                  {order.deadline && (
+                    <p className={`text-sm font-semibold ${deadlineClass(order.deadline)}`}>
+                      {formatDeadlineRemaining(order.deadline)}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Pages */}
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-muted">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Pages</p>
+                  <p className="text-sm font-semibold text-foreground">{order.pages} pages</p>
+                </div>
+              </div>
+
+              {/* Sources */}
+              {order.sources !== undefined && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <BookOpen className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Sources</p>
+                    <p className="text-sm font-semibold text-foreground">{order.sources} sources</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Citation */}
+              {order.citation_style && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Quote className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Citation</p>
+                    <p className="text-sm font-semibold text-foreground">{order.citation_style}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Language */}
+              {order.language && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Language</p>
+                    <p className="text-sm font-semibold text-foreground">{order.language}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Format */}
+              {order.format && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-muted">
+                    <FileType className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Format</p>
+                    <p className="text-sm font-semibold text-foreground">{order.format}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Description */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">Description</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              {order.description || "No description provided."}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Attached Files */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-semibold">Attached Files</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {order.files && order.files.length > 0 ? (
+              <div className="space-y-3">
+                {order.files.map((fileUrl, index) => (
                   <div
                     key={index}
                     className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
                   >
-                    {/* Left clickable preview area */}
                     <div
                       className="flex items-center gap-3 cursor-pointer"
                       onClick={() => openPreview(fileUrl, `File ${index + 1}`)}
@@ -265,20 +359,17 @@ export default function OrderDetails() {
                       <div className="p-2 rounded-md bg-primary/10">
                         <FileText className="h-4 w-4 text-primary" />
                       </div>
-
                       <div>
                         <p className="font-medium text-sm">File {index + 1}</p>
-                        <p className="text-xs text-muted-foreground font-medium truncate max-w-[120px] sm:max-w-[180px] md:max-w-[250px]">
+                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                           {fileUrl.split("/").pop()}
                         </p>
                       </div>
                     </div>
-
-                    {/* Download button */}
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="hover:bg-muted rounded-full"
+                      className="rounded-full"
                       onClick={(e) => {
                         e.stopPropagation();
                         downloadFile(fileUrl);
@@ -287,148 +378,89 @@ export default function OrderDetails() {
                       <Download className="h-4 w-4" />
                     </Button>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No files attached.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="space-y-6">
-          {/* Key Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Key Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start">
-                <Badge variant="outline" className="mr-2">
-                  {order.subject}
-                </Badge>
-                <span className="text-sm text-muted-foreground">{order.type}</span>
+                ))}
               </div>
-              <Separator />
-              <div className="flex items-center text-sm">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Deadline</p>
-                  {order.deadline && (
-                    <p className={`flex items-center font-medium ${deadlineClass(order.deadline)}`}>                    
-                      {formatDeadlineRemaining(order.deadline)}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center text-sm">
-                <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Pages</p>
-                  <p className="text-muted-foreground">{order.pages} pages</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            ) : (
+              <p className="text-sm text-muted-foreground">No files attached.</p>
+            )}
+          </CardContent>
+        </Card>
 
-          {/* Client Info (hide for clients themselves) 
-          {user?.role !== "client" && order.client && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Client Info</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="font-medium">{order.client.name}</p>
-                {order.client.email && (
-                  <p className="text-sm text-muted-foreground">{order.client.email}</p>
-                )}
-              </CardContent>
-            </Card>
-          )}
-          */}
+        {/* Role-Specific Actions */}
+        <div className="space-y-3">
+          {user?.role === "client" && order.writer_id ? (
+            <Button
+              size="lg"
+              className="w-full"
+              variant="outline"
+              onClick={() => navigate(`/client/chats?order=${order.id}`)}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Message Writer
+            </Button>
+          ) : user?.role === "writer" && order.client ? (
+            <Button
+              size="lg"
+              className="w-full"
+              variant="outline"
+              onClick={() => navigate(`/writer/chats?order=${order.id}`)}
+            >
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Message Client
+            </Button>
+          ) : null}
 
-          {/* ROLE-SPECIFIC ACTIONS */}
-          <div className="space-y-3">
-            {/* Message Button - Always show when there's a writer/client */}
-            {user?.role === "client" && order.writer_id ? (
+          {user?.role !== "client" ? (
+            <div className="grid gap-3 grid-cols-2">
               <Button
                 size="lg"
                 className="w-full"
                 variant="outline"
-                onClick={() => navigate(`/client/chats?order=${order.id}`)}
+                onClick={() => navigate(`/writer/place-bid/${order.id}`)}
               >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Message Writer
+                Place Your Bid
               </Button>
-            ) : user?.role === "writer" && order.client ? (
               <Button
+                variant="destructive"
                 size="lg"
-                className="w-full"
-                variant="outline"
-                onClick={() => navigate(`/writer/chats?order=${order.id}`)}
+                onClick={() => setDeclineOpen(true)}
               >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Message Client
+                <XCircle className="h-4 w-4 mr-2" />
+                Decline
               </Button>
-            ) : null}
-
-            {/* Writer Actions */}
-            {user?.role !== "client" ? (
+            </div>
+          ) : (
+            ["in_progress", "draft"].includes(order.status) && !order.writer_assigned && (
               <div className="grid gap-3 grid-cols-2">
                 <Button
                   size="lg"
                   className="w-full"
                   variant="outline"
-                  onClick={() => navigate(`/writer/place-bid/${order.id}`)}
+                  onClick={() => navigate(`/client/orders/${tab}/${order.id}/edit`)}
                 >
-                  Place Your Bid
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Order
                 </Button>
                 <Button
                   variant="destructive"
                   size="lg"
-                  onClick={() => setDeclineOpen(true)}
+                  onClick={() => openCancelDialog(order.id)}
                 >
-                  <XCircle className="h-4 w-4 mr-2" />
-                  Decline
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel Order
                 </Button>
               </div>
-            ) : (
-              /* Client Actions */
-              ["in_progress", "draft"].includes(order.status) && !order.writer_assigned && (
-                <div className="grid gap-3 grid-cols-2">
-                  <Button
-                    size="lg"
-                    className="w-full"
-                    variant="outline"
-                    onClick={() =>
-                      navigate(`/client/orders/${tab}/${order.id}/edit`)
-                    }
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Order
-                  </Button>
-
-                  <Button
-                    variant="destructive"
-                    size="lg"
-                    onClick={() => openCancelDialog(order.id)}
-                  >
-                    <X className="h-4 w-4 mr-2" />
-                    Cancel Order
-                  </Button>
-                </div>
-              )
-            )}
-          </div>
-
+            )
+          )}
         </div>
       </div>
+      {/*</ScrollArea>*/}
 
       {/* File Preview Dialog */}
       <Dialog open={!!previewFile} onOpenChange={closePreview}>
         <DialogContent
           forceMount
-          className="z-50 m-0 p-0 gap-0 w-full h-full max-w-none bg-background border-none rounded-none overflow-hidden flex flex-col overflow-y-auto"
+          className="z-50 m-0 p-0 gap-0 w-full h-full max-w-none bg-background border-none rounded-none overflow-hidden flex flex-col"
         >
           <DialogHeader className="flex items-center justify-between border-b bg-background/90 backdrop-blur-md px-6 py-1 shrink-0">
             <DialogTitle className="text-lg font-semibold">
@@ -437,7 +469,6 @@ export default function OrderDetails() {
           </DialogHeader>
 
           <div className="flex-1 flex items-center justify-center bg-muted/10 relative">
-            
             {previewFile?.type === "loading" && (
               <div className="flex flex-col items-center gap-3">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -467,7 +498,6 @@ export default function OrderDetails() {
                   <p className="text-muted-foreground">
                     Preview unavailable for this file type.
                   </p>
-
                   <Button
                     variant="outline"
                     size="sm"
@@ -482,7 +512,7 @@ export default function OrderDetails() {
                     Download to View
                   </Button>
                 </div>
-            )}
+              )}
           </div>
         </DialogContent>
       </Dialog>
