@@ -109,31 +109,30 @@ export default function OrderView() {
     fetchOrder();
   }, [orderId]);
 
-  const handleFileUpload = async (writerMessage: string) => {
+  const handleFileUpload = async (message?: unknown) => {
     if (uploadFiles.length === 0) return;
+
+    const safeMessage =
+      typeof message === "string" ? message.trim() : "";
 
     setIsUploading(true);
     try {
       const formData = new FormData();
-      
-      uploadFiles.forEach((uploadFile) => {
-        formData.append(`files`, uploadFile.file);
-        formData.append(`file_types`, uploadFile.type);
+
+      uploadFiles.forEach((uploadFile, index) => {
+        formData.append("files", uploadFile.file);
+        formData.append("file_types", uploadFile.type);
       });
 
-      if (writerMessage.trim()) {
-        formData.append("message", writerMessage.trim());
+      if (safeMessage) {
+        formData.append("message", safeMessage);
       }
 
-      await api.post(`/orders/${orderId}/files`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await api.post(`/orders/${orderId}/submissions`, formData);
 
       toast({
         title: "Files uploaded",
-        description: `Successfully uploaded ${uploadFiles.length} file(s)${writerMessage ? " with message" : ""}`,
+        description: `Successfully uploaded ${uploadFiles.length} file(s)`,
       });
 
       setUploadFiles([]);
@@ -142,13 +141,15 @@ export default function OrderView() {
       console.error(err);
       toast({
         title: "Upload failed",
-        description: err.response?.data?.error?.message || "Failed to upload files",
+        description:
+          err.response?.data?.error?.message || "Failed to upload files",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
     }
   };
+
 
   function formatDeadlineRemaining(deadlineIso: string): string {
     const deadline = new Date(deadlineIso);

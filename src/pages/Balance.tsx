@@ -106,6 +106,19 @@ export default function Balance() {
     setMethodsLoading(false);
   };
 
+
+  function parseISOToDate(iso: string) {
+    if (!iso) return new Date(NaN);
+    // Split at '.' to separate seconds from fractional part
+    const [datePart, fracAndZone] = iso.split(".");
+    if (!fracAndZone) return new Date(iso); // no fractional seconds
+
+    // Take only first 3 digits of fractional seconds
+    const millis = fracAndZone.slice(0, 3);
+    return new Date(`${datePart}.${millis}Z`);
+  }
+
+
   // fetch payment methods on initial mount
   useEffect(() => {
     loadPaymentMethods();
@@ -160,6 +173,7 @@ export default function Balance() {
         const { list, hasMore, page } = extractList(res, "transactions");
 
         setTransactions(prev => (reset ? list : [...prev, ...list]));
+        console.log(transactions);
         setTxPage(page);
         setHasMoreTx(hasMore);
       } finally {
@@ -349,7 +363,7 @@ export default function Balance() {
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
           <span className="text-2xl font-bold text-muted-foreground">My Balance:</span>
-          <span className="text-2xl font-bold">${balance?.available_balance ?? "0.00"}</span>
+          <span className="text-2xl font-bold">${balance?.balance ?? "0.00"}</span>
         </div>
 
         {/* Edit Payoneer */}
@@ -487,7 +501,8 @@ export default function Balance() {
                             <p className="text-sm text-muted-foreground mt-1">{t.description}</p>
                             <p className="text-xs text-muted-foreground mt-2 flex items-center">
                               <Calendar className="h-3 w-3 mr-1" />
-                              {new Date(t.created_at).toLocaleString()}
+                              {/*{new Date(t.created_at).toLocaleString()}*/}
+                              {parseISOToDate(t.created_at).toLocaleString()}
                             </p>
                           </div>
 
@@ -518,7 +533,7 @@ export default function Balance() {
                       <div>
                         <p className="font-medium">Withdrawal</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(w.created_at).toLocaleString()}
+                          {parseISOToDate(w.created_at).toLocaleString()}
                         </p>
                       </div>
                       <div className="text-right">

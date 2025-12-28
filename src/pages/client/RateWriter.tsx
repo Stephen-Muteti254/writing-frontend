@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,8 @@ const RATING_LABELS = [
 
 export default function RateWriter() {
   const { orderId } = useParams<{ orderId: string }>();
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -27,10 +29,22 @@ export default function RateWriter() {
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [review, setReview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const activeRating = hoveredRating || rating;
   const currentLabel = RATING_LABELS.find((r) => r.value === activeRating);
+
+
+  useEffect(() => {
+    const checkReview = async () => {
+      try {
+        const res = await api.get(`/orders/${orderId}/has_review`);
+        setIsSubmitted(res.data.isSubmitted);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkReview();
+  }, [orderId]);
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -73,6 +87,14 @@ export default function RateWriter() {
   const handleSkip = () => {
     navigate(-1);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[70vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (

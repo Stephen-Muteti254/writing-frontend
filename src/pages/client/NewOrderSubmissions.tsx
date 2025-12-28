@@ -28,11 +28,18 @@ interface Submission {
   submission_number: number;
   writer_id: string;
   message: string;
-  files: Array<{ name: string; path?: string; url?: string; size?: number }>;
+  files: Array<{
+    name: string;
+    path?: string;
+    url?: string;
+    size?: number;
+    type?: string;  // NEW: file type
+  }>;
   status: string;
   created_at: string;
   updated_at?: string;
 }
+
 
 interface SubmissionsResponse {
   order_status: string;
@@ -170,7 +177,7 @@ export default function OrderSubmissions() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="h-full space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Order Submissions</h1>
@@ -193,15 +200,14 @@ export default function OrderSubmissions() {
         )}
       </div>
 
-      <Card className="border-0 h-[calc(100dvh-10rem)] overflow-hidden relative">
+      <Card className="border-0 relative">
         {initialLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/60 z-10">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         )}
 
-        <CardContent className="p-0 h-full">
-          <ScrollArea ref={viewportRef} onScroll={handleScroll} className="h-full">
+        <CardContent className="p-0">
             <div className="p-4 pl-2 space-y-4">
               {/* No writer assigned message */}
               {!writerAssigned && !initialLoading && (
@@ -272,23 +278,34 @@ export default function OrderSubmissions() {
                           {submission.files.map((file, idx) => {
                             const fileUrl = `/orders/submissions/files/${submission.order_id}/${submission.id}/${file.name}`;
                             return (
-                              <div key={idx} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-                                <div className="flex items-center gap-3 cursor-pointer" onClick={() => openPreview(fileUrl, file.name)}>
+                              <div
+                                key={idx}
+                                className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                              >
+                                <div
+                                  className="flex items-center gap-3 cursor-pointer"
+                                  onClick={() => openPreview(fileUrl, file.name)}
+                                >
                                   <div className="p-2 rounded-md bg-primary/10">
                                     <FileText className="h-4 w-4 text-primary" />
                                   </div>
-                                  <div>
-                                    <p className="font-medium text-sm">{file.name}</p>
-                                    {file.size && <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>}
+                                  <div className="flex items-center justify-between gap-3 w-full">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-sm truncate">{file.name}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                      {file.type && <Badge variant="secondary" className="text-xs">{file.type}</Badge>}
+                                      {file.size && <p className="text-xs text-muted-foreground">{(file.size / 1024 / 1024).toFixed(2)} MB</p>}
+                                    </div>
                                   </div>
                                 </div>
-
                                 <Button size="sm" variant="outline" onClick={() => downloadFile(fileUrl, file.name)}>
                                   <Download className="h-4 w-4" />
                                 </Button>
                               </div>
                             );
                           })}
+
                         </div>
                       </div>
                     )}
@@ -308,7 +325,6 @@ export default function OrderSubmissions() {
                 </p>
               )}
             </div>
-          </ScrollArea>
         </CardContent>
       </Card>
 

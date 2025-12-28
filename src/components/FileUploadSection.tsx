@@ -44,7 +44,7 @@ export interface UploadFile {
 interface FileUploadSectionProps {
   files: UploadFile[];
   onFilesChange: (files: UploadFile[]) => void;
-  onSubmit: () => void;
+  onSubmit: (message: string) => void;
   isUploading: boolean;
 }
 
@@ -241,7 +241,7 @@ export function FileUploadSection({
         {/* Submit Button */}
         {files.length > 0 && (
           <div className="flex justify-end">
-            <Button onClick={onSubmit} disabled={isUploading}>
+            <Button onClick={() => onSubmit(writerMessage)} disabled={isUploading}>
               {isUploading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

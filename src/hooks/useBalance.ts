@@ -10,6 +10,7 @@ export default function useBalance() {
     try {
       const res = await api.get("/balance");
       setBalance(res.data);
+      console.log(res.data);
     } catch (err) {
       console.error(err);
     }

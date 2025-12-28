@@ -14,15 +14,22 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token =
-      localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+      localStorage.getItem("access_token") ||
+      sessionStorage.getItem("access_token");
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      delete config.headers.Authorization;
     }
+
+    // IMPORTANT FIX
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
+
 
 export default api;
