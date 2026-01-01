@@ -1,4 +1,4 @@
-import * as Lazy from "@/Lazy";
+import * as Lazy from "@/lazy";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,9 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { PublicLayout } from "./components/PublicLayout";
-// import MyOrders from "./pages/MyOrders";
 import EditBid from "./pages/EditBid";
-// import AvailableOrders from "./pages/AvailableOrders";
 import MyBids from "./pages/MyBids";
 import Chats from "./pages/Chats";
 import Leaderboard from "./pages/Leaderboard";
@@ -16,7 +14,6 @@ import Balance from "./pages/Balance";
 import Notifications from "./pages/Notifications";
 import NotificationSettings from "./pages/NotificationSettings";
 import Profile from "./pages/Profile";
-// import OrderDetails from "./pages/OrderDetails";
 import PlaceBid from "./pages/PlaceBid";
 import OrderView from "./pages/OrderView";
 import NotFound from "./pages/NotFound";
@@ -31,13 +28,9 @@ import AdminSupport from "./pages/admin/AdminSupport";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminApplications from "./pages/admin/AdminApplications";
 import AdminApplicationDetail from "./pages/admin/AdminApplicationDetail";
-// import NewClientOrders from "./pages/client/NewClientOrders";
 import OrderSubmissions from "./pages/client/NewOrderSubmissions";
 import OrderBids from "./pages/client/OrderBids";
 import ClientBids from "./pages/client/ClientBids";
-// import Landing from "./pages/Landing";
-// import Login from "./pages/Login";
-// import Register from "./pages/Register";
 import RegisterClient from "./pages/RegisterClient";
 import RegisterWriter from "./pages/RegisterWriter";
 import ApplicationPending from "./pages/ApplicationPending";
@@ -64,6 +57,8 @@ import { Suspense } from "react";
 import PageLoader from "@/components/PageLoader";
 import ClientWallet from "./pages/client/ClientWallet";
 import RateWriter from "./pages/client/RateWriter";
+import { ProfileCompletionProvider } from "@/contexts/ProfileCompletionContext";
+import ProfileCompletionController from "@/components/profile/ProfileCompletionController";
 
 const queryClient = new QueryClient();
 
@@ -80,6 +75,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <ProfileCompletionProvider>
+              <ProfileCompletionController />
             <NotificationProvider>
               <ChatProvider>
               <SupportChatProvider>
@@ -258,6 +255,7 @@ const App = () => (
               </SupportChatProvider>
               </ChatProvider>
             </NotificationProvider>
+          </ProfileCompletionProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -146,12 +146,12 @@ export function ClientSidebar() {
                   Profile
                 </NavLink>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              {/*<DropdownMenuItem asChild>
                 <NavLink to="/notifications-settings" className="flex items-center cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </NavLink>
-              </DropdownMenuItem>
+              </DropdownMenuItem>*/}
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive cursor-pointer"

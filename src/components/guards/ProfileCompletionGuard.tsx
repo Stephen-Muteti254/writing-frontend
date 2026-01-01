@@ -1,52 +1,56 @@
-import { ReactNode } from "react";
+import { useEffect } from "react";
+import { Outlet } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfileCompletion } from "@/contexts/ProfileCompletionContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UserCog, CheckCircle2, ArrowRight } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { Outlet } from "react-router-dom";
+import { ArrowRight, UserCog } from "lucide-react";
 
-interface ProfileCompletionGuardProps {
-  children: ReactNode;
-  onOpenProfile?: () => void;
-}
-
-const ProfileCompletionGuard = ({ children, onOpenProfile }: ProfileCompletionGuardProps) => {
-
+const ProfileCompletionGuard = () => {
   const { user, isLoading } = useAuth();
+  const { isOpen, openWizard } = useProfileCompletion();
 
-  if (isLoading) return <div>Loading...</div>;
+  useEffect(() => {
+    if (!user) return;
+    if (user.role !== "writer") return;
+    if (user.profile_completion?.is_complete) return;
+    if (isOpen) return;
+
+    openWizard();
+    }, [
+      user?.id,
+      user?.role,
+      user?.profile_completion?.is_complete,
+      isOpen,
+      openWizard
+    ]);
+
+  if (isLoading) return null;
   if (!user) return null;
 
-  const needsCompletion = user.account_status === "paid_initial_deposit" || user.application_status === "paid_initial_deposit";
-  if (!needsCompletion) return <Outlet />;
+  if (!user.profile_completion?.is_complete) {
+    return (
+      <div className="flex items-center justify-center min-h-full p-4">
+        <Card className="max-w-lg w-full">
+          <CardHeader className="text-center">
+            <UserCog className="mx-auto h-10 w-10 text-primary mb-3" />
+            <CardTitle>Complete Your Profile</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground text-center">
+              Finish setting up your profile to unlock available orders.
+            </p>
+            <Button className="w-full" onClick={() => openWizard()}>
+              Complete Profile
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  return (
-    <div className="flex items-center justify-center min-h-full p-4">
-      <Card className="max-w-lg w-full border-info/30 bg-gradient-to-br from-info/5 via-background to-info/5">
-        <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-4 p-4 rounded-full bg-info/10 w-fit">
-            <UserCog className="h-12 w-12 text-info" />
-          </div>
-          <CardTitle className="text-2xl font-bold">Complete Your Profile</CardTitle>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          <Alert className="border-info/30 bg-info/5">
-            <CheckCircle2 className="h-4 w-4 text-success" />
-            <AlertDescription className="text-base">
-              Initial deposit received. Complete your profile to access available orders.
-            </AlertDescription>
-          </Alert>
-
-          <Button className="w-full" size="lg" onClick={onOpenProfile}>
-            Complete Profile Setup
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <Outlet />;
 };
 
 export default ProfileCompletionGuard;
