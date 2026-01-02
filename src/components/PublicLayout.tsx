@@ -2,8 +2,8 @@ import { Link, useLocation, Outlet } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileText, Menu, X } from "lucide-react";
 import { useState } from "react";
-import LightLogo from "@/assets/academichub-logo-light-theme.PNG";
-import DarkLogo from "@/assets/academichub-logo-dark-theme.PNG";
+import LightLogo from "@/assets/academichub-logo-light-theme.png";
+import DarkLogo from "@/assets/academichub-logo-dark-theme.png";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
