@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import api from "@/lib/api";
-import ChatPanel from "@/components/chatpanel";
+import ChatPanel from "@/components/ChatPanel";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface Chat {
