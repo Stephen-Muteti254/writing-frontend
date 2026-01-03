@@ -52,11 +52,7 @@ const orderFormSchema = z.object({
   description: z.string()
     .trim()
     .min(20, { message: "Description must be at least 20 characters" })
-    .max(500, { message: "Description must be less than 500 characters" }),
-  detailedRequirements: z.string()
-    .trim()
-    .max(2000, { message: "Requirements must be less than 2000 characters" })
-    .optional(),
+    .max(50000, { message: "Description must be less than 50000 characters" }),
   category: z.string()
     .min(1, { message: "Please select a category" }),
   orderType: z.string()
@@ -85,10 +81,10 @@ type OrderFormValues = z.infer<typeof orderFormSchema>;
 
 interface AttachedFile {
   id: string;
-  file?: File;        // Only present for new uploads
+  file?: File;
   name: string;
   size: number;
-  url?: string;       // Only for existing files
+  url?: string;
 }
 
 export default function OrderFormPage() {
@@ -143,12 +139,6 @@ export default function OrderFormPage() {
 
   useEffect(() => {
     const subscription = form.watch((values) => {
-      console.log("%c[WATCH TRIGGERED]", "color: #4ade80; font-weight: bold;");
-      console.log("category:", values.category);
-      console.log("orderType:", values.orderType);
-      console.log("pages:", values.pages);
-      console.log("deadline:", values.deadline);
-
       setPricingValues({
         category: values.category,
         orderType: values.orderType,
@@ -205,7 +195,6 @@ export default function OrderFormPage() {
         form.reset({
           title: data.title ?? "",
           description: data.description ?? "",
-          detailedRequirements: data.detailed_requirements || data.requirements || "",
           category: data.subject || data.category || "",
           orderType: data.type || data.order_type || "",
           budget: data.budget ? String(data.budget) : "",
@@ -236,14 +225,12 @@ export default function OrderFormPage() {
           return {
             id: `existing-${index}`,
             name: url?.split("/").pop() || f.name || `attachment-${index + 1}`,
-            size: f.size || 0,   // try to use real size if backend provides it
+            size: f.size || 0,
             url,
           };
         });
 
         setAttachedFiles(files);
-
-        console.log("Normalized files:", files);
       
       } catch (error: any) {
         toast({
@@ -270,7 +257,6 @@ export default function OrderFormPage() {
     try {
       const res = await api.get(`/users/search?q=${encodeURIComponent(writerInput.trim())}`);
       const results = res.data?.results || [];
-      console.log(res.data.results);
       setWriterLookup({ loading: false, results });
     } catch (err: any) {
       setWriterLookup({
@@ -408,22 +394,13 @@ export default function OrderFormPage() {
           </div>
         ) : (
         <div className="flex items-center gap-4">
-          {/*<Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="shrink-0 hover:bg-accent"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>*/}
           <h1 className="text-2xl font-bold">
             {isEditing ? "Edit Order" : "Create New Order"}
           </h1>
         </div>
         )}
       </div>
-
-        {/*<ScrollArea className="flex-1 pr-4 py-4">*/}
+       
         <div className="flex-1 max-w-5xl mx-auto space-y-4 pb-10 mt-4">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
@@ -431,9 +408,6 @@ export default function OrderFormPage() {
             <Card className="border-border shadow-soft">
               <CardHeader className="space-y-1 pb-4">
                 <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
                   <CardTitle>Project Details</CardTitle>
                 </div>
                 <CardDescription>
@@ -464,35 +438,17 @@ export default function OrderFormPage() {
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Brief Description</FormLabel>
+                      <FormLabel>Description</FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Provide a clear overview of what you need..."
-                          className="min-h-[100px] resize-none bg-background"
+                          className="min-h-[200px] resize-none bg-background"
                           {...field}
                         />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        {field.value?.length || 0} / 500 characters
+                        {field.value?.length || 0} / 50000 characters
                       </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="detailedRequirements"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Detailed Requirements <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="List specific requirements, structure, sections needed, key points to cover..."
-                          className="min-h-[140px] resize-none bg-background"
-                          {...field}
-                        />
-                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1059,7 +1015,6 @@ export default function OrderFormPage() {
           </form>
         </Form>
       </div>
-      {/*</ScrollArea>*/}
     </div>
   );
 }
