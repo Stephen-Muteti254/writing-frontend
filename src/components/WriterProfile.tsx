@@ -123,7 +123,7 @@ export function WriterProfile({ isOpen, onOpenChange }: WriterProfileProps = {})
               <Button
                 variant={isEditing ? "default" : "outline"}
                 size="sm"
-                disabled={true}
+                // disabled={true}
                 onClick={() => openWizard()}
               >
                 <Edit className="h-4 w-4 mr-2" />
