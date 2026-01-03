@@ -37,12 +37,14 @@ import ApplicationPending from "./pages/ApplicationPending";
 import ApplicationApproved from "./pages/ApplicationApproved";
 import WriterApplication from "./pages/WriterApplication";
 import EmailVerification from "./pages/EmailVerification";
+import WriterProfileCompletionLayout from "./pages/WriterProfileCompletionLayout";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import { RequireAuth } from '@/components/RequireAuth';
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ProfileProvider } from "@/contexts/ProfileContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { SupportChatProvider } from "@/contexts/SupportChatContext";
@@ -75,8 +77,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <ProfileCompletionProvider>
-              <ProfileCompletionController />
+            <ProfileProvider>
             <NotificationProvider>
               <ChatProvider>
               <SupportChatProvider>
@@ -189,7 +190,17 @@ const App = () => (
                     {/* ================= WRITER ================= */}
                     <Route element={<RequireAuth requiredRole="writer" />}>
                       <Route element={<EmailVerificationGuard />}>
-                        <Route path="/writer" element={<Lazy.DashboardLayout />}>
+                        <Route
+                            path="/writer"
+                            element={
+                              <ProfileCompletionProvider>
+                                <Lazy.DashboardLayout />
+                                <ProfileCompletionController />
+                              </ProfileCompletionProvider>
+                            }
+                          >
+                        {/*<Route element={<WriterProfileCompletionLayout />}>*/}
+                          {/*<ProfileProvider>*/}
                           <Route element={<ApplicationStatusGuard />}>
                             <Route element={<ProfileCompletionGuard />}>
                               <Route element={<SuspensionGuard allowNavigation={false} />}>
@@ -239,23 +250,25 @@ const App = () => (
                                   path="notifications-settings"
                                   element={<NotificationSettings />}
                                 />
-                                <Route path="profile" element={<Profile />} />
 
                                 <Route path="*" element={<NotFound />} />
 
                               </Route>
                             </Route>
                           </Route>
-                        </Route>
+                          {/*</ProfileProvider>*/}
+                          </Route>
+                        {/*</Route>*/}
                       </Route>
                     </Route>
+                    {/*End of writer routes*/}
                   </Routes>
                 </Suspense>
                 </ProfileModalProvider>
               </SupportChatProvider>
               </ChatProvider>
             </NotificationProvider>
-          </ProfileCompletionProvider>
+            </ProfileProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -3,21 +3,45 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, User, FileText, BookOpen, GraduationCap, Languages, Briefcase } from "lucide-react";
 import { WriterProfileData, PROFICIENCY_LEVELS } from "@/types/profile";
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
 
 interface ReviewStepProps {
   data: WriterProfileData;
 }
 
 export function ReviewStep({ data }: ReviewStepProps) {
+  const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const API_ORIGIN = api.defaults.baseURL?.replace("/api/v1", "");
+
+    if (typeof data.profile_image === "string") {
+      setProfileImageUrl(`${API_ORIGIN}/api/v1/profile/images/${data.profile_image}`);
+    } else if (data.profile_image instanceof File) {
+      // For newly uploaded File, create a preview URL
+      setProfileImageUrl(URL.createObjectURL(data.profile_image));
+    } else {
+      setProfileImageUrl(undefined);
+    }
+
+    // Cleanup object URLs
+    return () => {
+      if (data.profile_image instanceof File) {
+        URL.revokeObjectURL(profileImageUrl!);
+      }
+    };
+  }, [data.profile_image]);
+
   return (
     <div className="animate-fade-in space-y-6">
       <div className="text-center space-y-2">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10 mb-2">
           <CheckCircle2 className="h-8 w-8 text-success" />
         </div>
-        <h2 className="text-2xl font-bold text-foreground">Review Your Profile</h2>
+        <h2 className="text-2xl font-bold text-foreground">Profile Setup Complete</h2>
         <p className="text-muted-foreground">
-          Make sure everything looks good before completing
+          You’re all set. You can close this dialog and start using the platform.
         </p>
       </div>
 
@@ -27,7 +51,7 @@ export function ReviewStep({ data }: ReviewStepProps) {
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <Avatar className="h-20 w-20 border-2 border-primary/20">
-                <AvatarImage src={data.profileImage || undefined} />
+                <AvatarImage src={profileImageUrl} />
                 <AvatarFallback className="bg-primary/10 text-primary text-xl">
                   <User className="h-8 w-8" />
                 </AvatarFallback>

@@ -11,9 +11,16 @@ interface WizardProgressProps {
   steps: Step[];
   currentStep: number;
   completedSteps: number[];
+  onStepClick?: (stepId: number) => void; // <-- optional callback
 }
 
-export function WizardProgress({ steps, currentStep, completedSteps }: WizardProgressProps) {
+
+export function WizardProgress({
+  steps,
+  currentStep,
+  completedSteps,
+  onStepClick,
+}: WizardProgressProps) {
   return (
     <div className="w-full">
       {/* Progress bar */}
@@ -30,18 +37,19 @@ export function WizardProgress({ steps, currentStep, completedSteps }: WizardPro
             const isCompleted = completedSteps.includes(step.id);
             const isCurrent = currentStep === step.id;
             const isPast = step.id < currentStep;
-            
+
             return (
               <div key={step.id} className="flex flex-col items-center">
                 <div
                   className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2",
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 border-2 cursor-pointer",
                     isCompleted || isPast
                       ? "bg-primary border-primary text-primary-foreground"
                       : isCurrent
                       ? "bg-card border-primary text-primary shadow-glow"
                       : "bg-muted border-muted text-muted-foreground"
                   )}
+                  onClick={() => onStepClick(step.id)} // <-- this was missing
                 >
                   {isCompleted || isPast ? (
                     <Check className="h-5 w-5" />

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Check, Camera, FileText, Briefcase, GraduationCap, Languages, BookOpen } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Camera, FileText, Briefcase, GraduationCap, Languages, BookOpen, Loader2 } from "lucide-react";
 import { WizardProgress } from "./WizardProgress";
 import { ProfilePhotoStep } from "./steps/ProfilePhotoStep";
 import { BioStep } from "./steps/BioStep";
@@ -32,7 +32,7 @@ const STEPS = [
 ];
 
 const defaultData: WriterProfileData = {
-  profileImage: null,
+  profile_image: null,
   bio: "",
   specializations: [],
   education: [],
@@ -44,7 +44,7 @@ const defaultData: WriterProfileData = {
 function getFirstMissingStep(
     data: Partial<WriterProfileData>
   ): number {
-    if (!data.profileImage) return 1;
+    if (!data.profile_image) return 1;
     if (!data.bio || data.bio.length < 100) return 2;
     if (!data.specializations || data.specializations.length === 0) return 3;
     if (!data.education || data.education.length === 0) return 4;
@@ -68,11 +68,13 @@ export function ProfileCompletionWizard({
     ...initialData,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isStepSubmitting, setIsStepSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const validateStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return !!data.profileImage;
+        return !!data.profile_image;
       case 2:
         return data.bio.length >= 100;
       case 3:
@@ -92,7 +94,7 @@ export function ProfileCompletionWizard({
   function getStepPayload(step: number, data: WriterProfileData) {
     switch (step) {
       case 1:
-        return { profileImage: data.profileImage };
+        return { profile_image: data.profile_image };
       case 2:
         return { bio: data.bio };
       case 3:
@@ -144,27 +146,84 @@ export function ProfileCompletionWizard({
   }, [initialData]);
 
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      setIsLoading(true);
+      try {
+        const res = await api.get<WriterProfileData>("/profile");
+        const fetchedData = res.data.writer_profile;
+
+        setData({
+          profile_image: fetchedData.profile_image, // map snake_case to camelCase
+          bio: fetchedData.bio,
+          specializations: fetchedData.specializations,
+          education: fetchedData.education,
+          languages: fetchedData.languages,
+          subjects: fetchedData.subjects,
+        });
+
+        // completed steps
+        const steps: number[] = [];
+        if (fetchedData.profile_image) steps.push(1);
+        if (fetchedData.bio?.length >= 100) steps.push(2);
+        if (fetchedData.specializations?.length > 0) steps.push(3);
+        if (fetchedData.education?.length > 0) steps.push(4);
+        if (fetchedData.languages?.length > 0) steps.push(5);
+        if (fetchedData.subjects?.length > 0) steps.push(6);
+        setCompletedSteps(steps);
+
+        setCurrentStep(getFirstMissingStep(fetchedData));
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load profile data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isOpen) loadProfile(); // <-- only load when wizard is open
+  }, [isOpen]);
+
+
   const handleNext = async () => {
     if (!validateStep(currentStep)) {
       toast.error(getValidationMessage(currentStep));
       return;
     }
 
-    try {
-      payload = {
-        ...getStepPayload(currentStep, data),
-        completion_step: currentStep + 1,
-        completion_percent: Math.round((currentStep / (STEPS.length - 1)) * 100),
-      }
-      await api.put("/writer/profile", payload)
+    // Determine current step payload
+    const payload = getStepPayload(currentStep, data);
+    const stepHasChanges = Object.keys(payload).some((key) => {
+      const currentValue = data[key as keyof WriterProfileData];
+      const initialValue = initialData?.[key as keyof WriterProfileData];
+      // For files, always treat File as changed
+      if (currentValue instanceof File) return true;
+      return JSON.stringify(currentValue) !== JSON.stringify(initialValue);
+    });
 
-      if (!completedSteps.includes(currentStep)) {
-        setCompletedSteps((prev) => [...prev, currentStep]);
+    setIsStepSubmitting(true);
+
+    try {
+      if (currentStep === 1 && data.profile_image instanceof File) {
+        const fd = new FormData();
+        fd.append("profileImage", data.profile_image);
+        await api.put("/profile", fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        setCompletedSteps((prev) => prev.includes(1) ? prev : [...prev, 1]);
+      } else if (stepHasChanges) {
+        await api.put("/profile", payload);
+        setCompletedSteps((prev) =>
+          prev.includes(currentStep) ? prev : [...prev, currentStep]
+        );
       }
 
       setCurrentStep((s) => s + 1);
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to save progress");
+    } finally {
+      setIsStepSubmitting(false);
     }
   };
 
@@ -175,26 +234,20 @@ export function ProfileCompletionWizard({
     }
   };
 
-  const handleComplete = async () => {
-    setIsSubmitting(true);
-    try {
-      await onComplete(data);
-      toast.success("Profile completed successfully!");
-      onOpenChange(false);
-    } catch (error) {
-      toast.error("Failed to save profile. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleComplete = () => {
+    toast.success("Profile setup complete");
+    onOpenChange(false);
+    window.location.reload();
   };
 
   const renderStep = () => {
     switch (currentStep) {
       case 1:
+        console.log("ProfilePhotoStep value:", data.profile_image);
         return (
           <ProfilePhotoStep
-            value={data.profileImage}
-            onChange={(val) => setData({ ...data, profileImage: val })}
+            value={data.profile_image}
+            onChange={(file) => setData({ ...data, profile_image: file })}
           />
         );
       case 2:
@@ -240,7 +293,11 @@ export function ProfileCompletionWizard({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && currentStep === STEPS.length) return;
+        onOpenChange(open);
+      }}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="pb-0">
           <DialogTitle className="sr-only">Complete Your Profile</DialogTitle>
@@ -248,18 +305,32 @@ export function ProfileCompletionWizard({
             steps={STEPS}
             currentStep={currentStep}
             completedSteps={completedSteps}
+            onStepClick={async (stepId) => {
+              if (stepId === currentStep) return;
+
+              // Attempt to save current step first
+              await handleNext(); // modified to support skipping to next step
+              setCurrentStep(stepId);
+            }}
           />
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto py-4 px-1">
-          {renderStep()}
+        <div className="flex-1 overflow-y-auto py-4 px-1 flex items-center justify-center">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="text-sm text-muted-foreground">Loading profile...</span>
+            </div>
+          ) : (
+            renderStep()
+          )}
         </div>
 
         <div className="flex justify-between pt-4 border-t border-border">
           <Button
             variant="ghost"
             onClick={handleBack}
-            disabled={currentStep === 1}
+            disabled={currentStep === 1 || currentStep === STEPS.length}
             className="gap-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -273,13 +344,26 @@ export function ProfileCompletionWizard({
               disabled={isSubmitting}
               className="gap-2"
             >
-              {isSubmitting ? "Saving..." : "Complete Profile"}
+              {isSubmitting ? "Saving..." : "Finish"}
               <Check className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleNext} className="gap-2">
-              Continue
-              <ArrowRight className="h-4 w-4" />
+            <Button
+              onClick={handleNext}
+              className="gap-2"
+              disabled={isStepSubmitting}
+            >
+              {isStepSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           )}
         </div>

@@ -16,14 +16,14 @@ interface LanguagesStepProps {
 export function LanguagesStep({ value, onChange }: LanguagesStepProps) {
   const [isAdding, setIsAdding] = useState(value.length === 0);
   const [newEntry, setNewEntry] = useState<Omit<LanguageEntry, "id">>({
-    language: "",
+    language: undefined,
     proficiency: "fluent",
   });
 
   const addEntry = () => {
     if (newEntry.language && !value.find((e) => e.language === newEntry.language)) {
       onChange([...value, { ...newEntry, id: crypto.randomUUID() }]);
-      setNewEntry({ language: "", proficiency: "fluent" });
+      setNewEntry({ language: undefined, proficiency: "fluent" }); // reset to undefined
       setIsAdding(false);
     }
   };
@@ -48,8 +48,12 @@ export function LanguagesStep({ value, onChange }: LanguagesStepProps) {
   };
 
   const availableLanguages = LANGUAGES.filter(
-    (lang) => !value.find((e) => e.language === lang)
+    (lang) => !value.some((e) => e.language?.trim() === lang)
   );
+
+  // Debug logs
+  console.log("value:", value);
+  console.log("availableLanguages:", availableLanguages);
 
   return (
     <div className="animate-fade-in space-y-6">
@@ -106,13 +110,17 @@ export function LanguagesStep({ value, onChange }: LanguagesStepProps) {
               <div className="space-y-2">
                 <Label>Language</Label>
                 <Select
-                  value={newEntry.language}
+                  value={newEntry.language ?? undefined} // ensure undefined if null
                   onValueChange={(val) => setNewEntry({ ...newEntry, language: val })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select language" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent portalled={true}
+                    side="bottom"
+                    align="start"
+                    className="z-[9999] max-h-60 overflow-y-auto"
+                  >
                     {availableLanguages.map((lang) => (
                       <SelectItem key={lang} value={lang}>
                         {lang}
