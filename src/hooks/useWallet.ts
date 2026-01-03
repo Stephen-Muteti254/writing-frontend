@@ -99,7 +99,9 @@ export function useWallet() {
       return response;
     },
     onSuccess: (data: DepositResponse) => {
-      const paystack = new PaystackInline({ key: data.public_key });
+      const paystack = new PaystackInline({
+        key: data.public_key,
+      });
 
       paystack.open({
         email: data.email,
@@ -107,16 +109,20 @@ export function useWallet() {
         currency: data.currency,
         ref: data.reference,
         metadata: data.metadata,
-        callback: (response: any) => {
-          window.location.href = `${window.location.pathname}?deposit=success&reference=${response.reference}`;
-        },
-        onClose: () => {
-          toast({
-            title: "Payment cancelled",
-            description: "You closed the payment popup",
-            variant: "destructive",
-          });
-        },
+      });
+
+      // register callbacks AFTER opening
+      paystack.onSuccess((response: any) => {
+        window.location.href =
+          `${window.location.pathname}?deposit=success&reference=${response.reference}`;
+      });
+
+      paystack.onCancel(() => {
+        toast({
+          title: "Payment cancelled",
+          description: "You closed the payment popup",
+          variant: "destructive",
+        });
       });
     },
     onError: (error: Error) => {

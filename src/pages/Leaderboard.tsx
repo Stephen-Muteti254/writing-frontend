@@ -102,7 +102,7 @@ export default function Leaderboard() {
                         <p className="font-medium text-lg">
                           {formatWriterName(writer.name)}
                         </p>
-                        <p className="text-sm text-muted-foreground">{writer.specialization}</p>
+                        {/*<p className="text-sm text-muted-foreground">{writer.specialization}</p>*/}
                       </div>
                     </div>
 

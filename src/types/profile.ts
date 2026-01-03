@@ -51,6 +51,7 @@ export const SUBJECTS = [
   "Physics",
   "Engineering",
   "Medicine",
+  "Nursing",
   "Law",
   "Education",
   "Art & Design",
