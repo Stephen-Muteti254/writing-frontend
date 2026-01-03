@@ -66,10 +66,10 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              {/*<div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
                 <Award className="w-4 h-4 mr-2" />
                 Trusted by thousands of users
-              </div>
+              </div>*/}
               <h1 className="text-4xl lg:text-6xl font-bold text-foreground leading-tight">
                 Connect with
                 <span className="text-primary"> Expert Writers</span> for Your Academic Needs

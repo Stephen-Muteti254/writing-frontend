@@ -26,6 +26,19 @@ export default function Leaderboard() {
     }
   };
 
+  const formatWriterName = (name: string) => {
+    if (!name) return "";
+
+    const parts = name.trim().split(" ");
+
+    if (parts.length === 1) {
+      return parts[0];
+    }
+
+    return `${parts[0]} ${parts[1][0].toUpperCase()}.`;
+  };
+
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
@@ -86,7 +99,9 @@ export default function Leaderboard() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-lg">{writer.name}</p>
+                        <p className="font-medium text-lg">
+                          {formatWriterName(writer.name)}
+                        </p>
                         <p className="text-sm text-muted-foreground">{writer.specialization}</p>
                       </div>
                     </div>

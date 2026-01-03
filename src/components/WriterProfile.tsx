@@ -28,13 +28,13 @@ import { useProfile } from "@/contexts/ProfileContext";
 import { useProfileCompletion } from "@/contexts/ProfileCompletionContext";
 
 const mockProfile = {
-  name: "Sarah Johnson",
+  name: "Writer Name",
   avatar: "",
   rating: 4.9,
-  totalOrders: 1247,
-  completedOrders: 1203,
+  totalOrders: 10,
+  completedOrders: 8,
   successRate: 96.5,
-  earnings: 45230,
+  earnings: 550,
   level: "Expert Writer",
   specializations: ["Academic Writing", "Research Papers", "Essays", "Business Writing"],
   languages: ["English (Native)", "Spanish (Fluent)", "French (Intermediate)"],
@@ -123,6 +123,7 @@ export function WriterProfile({ isOpen, onOpenChange }: WriterProfileProps = {})
               <Button
                 variant={isEditing ? "default" : "outline"}
                 size="sm"
+                disabled={true}
                 onClick={() => openWizard()}
               >
                 <Edit className="h-4 w-4 mr-2" />

@@ -38,13 +38,13 @@ import api from "@/lib/api";
 
 interface Writer {
   id: string;
-  full_name: string;
-  email: string;
-  rating: number;
-  completed_orders: number;
-  total_earned: number;
-  account_status: "awaiting-deposit" | "active" | "pending" | "suspended-temporary" | "suspended-permanent";
-  joined_at: string;
+  application_id?: string;
+  account_status:
+    | "awaiting_initial_deposit"
+    | "active"
+    | "pending"
+    | "suspended-temporary"
+    | "suspended-permanent";
 }
 
 export default function AdminWriters() {
@@ -158,7 +158,7 @@ export default function AdminWriters() {
 
     setActionLoading((p) => ({ ...p, [id]: true }));
     try {
-      await api.patch(`/admin/writers/${id}/approve-deposit`);
+      await api.post(`/applications/${id}/confirm-deposit`);
       setWriters((prev) =>
         prev.map((w) => (w.id === id ? { ...w, account_status: "active" } : w))
       );
@@ -312,7 +312,7 @@ export default function AdminWriters() {
                             View Profile
                           </DropdownMenuItem>
                           
-                          {writer.account_status === "awaiting-deposit" && (
+                          {writer.account_status === "awaiting_initial_deposit" && (
                             <>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -323,7 +323,7 @@ export default function AdminWriters() {
                                 className="text-emerald-600"
                               >
                                 <UserCheck className="h-4 w-4 mr-2" />
-                                Approve Deposit
+                                Mark Initial Deposit Paid
                               </DropdownMenuItem>
                             </>
                           )}
