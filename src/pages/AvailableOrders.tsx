@@ -130,6 +130,7 @@ export default function AvailableOrders() {
   }
 
   const fetchOrders = async (pageNum = 1, reset = false) => {
+    if (loading) return;
     try {
       const params: Record<string, any> = {
         page: pageNum,
@@ -176,15 +177,29 @@ export default function AvailableOrders() {
     fetchOrders(1, true);
   }, [tab, searchQuery]);
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
-    const bottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 50;
-    if (bottom && !loading && hasMore) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchOrders(nextPage);
+  const handleWindowScroll = () => {
+    if (loading || !hasMore) return;
+
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+
+    // Trigger when near bottom
+    if (scrollTop + windowHeight >= documentHeight - 200) {
+      setPage((prev) => {
+        const next = prev + 1;
+        fetchOrders(next);
+        return next;
+      });
     }
   };
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [loading, hasMore]);
+
+
 
   const applyFilters = () => {
     setFilterOpen(false);

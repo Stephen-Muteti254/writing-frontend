@@ -96,6 +96,8 @@ export default function ClientOrders() {
 
       const newOrders = response.data?.orders || [];
 
+      console.log(response.data);
+
       setOrders(prev => reset ? newOrders : [...prev, ...newOrders]);
       setHasMore(response.data?.meta?.has_more ?? newOrders.length > 0);
 
