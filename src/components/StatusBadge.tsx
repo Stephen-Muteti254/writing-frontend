@@ -26,6 +26,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
     label: "Open",
     className: "bg-status-active/10 text-status-active border-status-active/20",
   },
+  paid: {
+    label: "Open",
+    className: "bg-status-active/10 text-status-active border-status-active/20",
+  },
   declined: {
     label: "Declined",
     className: "bg-status-cancelled/10 text-status-cancelled border-status-cancelled/20",

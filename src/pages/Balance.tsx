@@ -76,14 +76,6 @@ export default function Balance() {
   // -----------------------------
   // Refs
   // -----------------------------
-  const scrollRef = useRef<{
-    getElement: () => HTMLDivElement | null;
-    scrollTop: () => number;
-    scrollHeight: () => number;
-    clientHeight: () => number;
-  }>(null);
-
-  // const scrollRef = useRef<HTMLDivElement>(null);
   const loadingRef = useRef(false);
   const searchTimeout = useRef<number | null>(null);
 
@@ -129,6 +121,7 @@ export default function Balance() {
   // -----------------------------
   const getStatusIcon = (s: string) => {
     switch (s) {
+      case "paid": return <CheckCircle className="h-4 w-4 text-green-500" />;
       case "completed": return <CheckCircle className="h-4 w-4 text-green-500" />;
       case "pending": return <Clock className="h-4 w-4 text-yellow-500" />;
       default: return <XCircle className="h-4 w-4 text-red-500" />;
@@ -153,16 +146,16 @@ export default function Balance() {
   // API Loaders
   // -----------------------------
   const loadTransactions = useCallback(
-    async (p = 1, reset = false) => {
-      if (!reset && loadingRef.current) return;
-
+    async (pageNum = 1, reset = false) => {
+      if (loadingRef.current) return;
       loadingRef.current = true;
+
       reset ? setLoadingInitial(true) : setLoadingMore(true);
 
       try {
         const res = await api.get("/transactions", {
           params: {
-            page: p,
+            page: pageNum,
             limit: LIMIT,
             order_id: filters.orderId,
             date_from: filters.dateFrom,
@@ -170,12 +163,13 @@ export default function Balance() {
           },
         });
 
-        const { list, hasMore, page } = extractList(res, "transactions");
+        console.log(res);
+
+        const { list, hasMore } = extractList(res, "transactions");
 
         setTransactions(prev => (reset ? list : [...prev, ...list]));
-        console.log(transactions);
-        setTxPage(page);
-        setHasMoreTx(hasMore);
+        setHasMoreTx(Boolean((LIMIT * res.data.pagination.page) <= (res.data.pagination.total)));
+        setTxPage(pageNum);
       } finally {
         loadingRef.current = false;
         setLoadingInitial(false);
@@ -185,39 +179,37 @@ export default function Balance() {
     [filters]
   );
 
-  const loadWithdrawals = useCallback(
-    async (p = 1, reset = false) => {
-      if (!reset && loadingRef.current) return;
 
-      loadingRef.current = true;
-      reset ? setLoadingInitial(true) : setLoadingMore(true);
+  const loadWithdrawals = async (pageNum = 1, reset = false) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
 
-      try {
-        const res = await api.get("/withdrawals", {
-          params: { page: p, limit: LIMIT },
-        });
+    reset ? setLoadingInitial(true) : setLoadingMore(true);
 
-        const { list, hasMore, page } = extractList(res, "withdrawals");
+    try {
+      const res = await api.get("/withdrawals", {
+        params: { page: pageNum, limit: LIMIT },
+      });
 
-        setWithdrawals(prev => (reset ? list : [...prev, ...list]));
-        setWdPage(page);
-        setHasMoreWd(hasMore);
-      } finally {
-        loadingRef.current = false;
-        setLoadingInitial(false);
-        setLoadingMore(false);
-      }
-    },
-    []
-  );
+      const { list, hasMore } = extractList(res, "withdrawals");
+
+      setWithdrawals(prev => reset ? list : [...prev, ...list]);
+      setHasMoreWd(hasMore);
+      setWdPage(pageNum);
+    } finally {
+      loadingRef.current = false;
+      setLoadingInitial(false);
+      setLoadingMore(false);
+    }
+  };
+
+
+
 
   // -----------------------------
   // Reset + Load on tab change
   // -----------------------------
   useEffect(() => {
-    setLoadingInitial(true);
-    loadingRef.current = false;
-
     if (tab === "transactions") {
       setTransactions([]);
       setTxPage(1);
@@ -233,11 +225,13 @@ export default function Balance() {
     }
 
     if (tab === "methods") {
-      loadPaymentMethods();
-      setLoadingInitial(false);
+      (async () => {
+        setLoadingInitial(true);
+        await loadPaymentMethods();
+        setLoadingInitial(false);
+      })();
     }
-  }, [tab, loadTransactions, loadWithdrawals]);
-
+  }, [tab]);
 
   // -----------------------------
   // Search debounce for Transactions
@@ -250,6 +244,7 @@ export default function Balance() {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
 
     searchTimeout.current = window.setTimeout(() => {
+      setTxPage(1);
       loadTransactions(1, true);
     }, 400);
   };
@@ -257,22 +252,40 @@ export default function Balance() {
   // -----------------------------
   // ON SCROLL (same as AdminPayments)
   // -----------------------------
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || loadingRef.current) return;
+  const handleWindowScroll = useCallback(() => {
+    if (loadingMore) return;
 
-    const atBottom =
-      el.scrollHeight() - el.scrollTop() - el.clientHeight() < 120;
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
 
-    if (!atBottom) return;
+    if (scrollTop + windowHeight < documentHeight - 200) return;
 
     if (tab === "transactions" && hasMoreTx) {
       loadTransactions(txPage + 1);
     }
+
     if (tab === "withdrawals" && hasMoreWd) {
       loadWithdrawals(wdPage + 1);
     }
-  }, [tab, txPage, wdPage, hasMoreTx, hasMoreWd, loadTransactions, loadWithdrawals]);
+  }, [
+    tab,
+    txPage,
+    wdPage,
+    hasMoreTx,
+    hasMoreWd,
+    loadingMore,
+    loadTransactions,
+  ]);
+
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [handleWindowScroll]);
+
+
+
 
   // -----------------------------
   // Withdrawal Action
@@ -511,7 +524,7 @@ export default function Balance() {
                               ${Math.abs(t.amount)}
                             </p>
                             <div className="flex justify-end items-center gap-1 mt-1">
-                              {getStatusIcon(t.status)}
+                              {getStatusIcon(t.status || 'completed')}
                               <span className="capitalize text-xs">{t.status}</span>
                             </div>
                           </div>

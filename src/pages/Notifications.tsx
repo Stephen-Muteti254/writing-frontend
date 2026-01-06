@@ -37,12 +37,12 @@ export default function Notifications() {
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const scrollRef = useRef<{
-    getElement: () => HTMLDivElement | null;
-    scrollTop: () => number;
-    scrollHeight: () => number;
-    clientHeight: () => number;
-  }>(null);
+  // const scrollRef = useRef<{
+  //   getElement: () => HTMLDivElement | null;
+  //   scrollTop: () => number;
+  //   scrollHeight: () => number;
+  //   clientHeight: () => number;
+  // }>(null);
   const loadingRef = useRef(false);
   const nextPageRef = useRef(1);
 
@@ -101,17 +101,23 @@ export default function Notifications() {
   }, [fetchNotifications]);
 
   // onScroll - same pattern as AdminPayments
-  const handleScroll = useCallback(() => {
+  const handleWindowScroll = useCallback(() => {
     if (loadingRef.current || !hasMore) return;
 
-    const el = scrollRef.current?.getElement(); // use getElement() from ScrollArea
-    if (!el) return;
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (nearBottom) {
+    if (scrollTop + windowHeight >= documentHeight - 200) {
       fetchNotifications(nextPageRef.current, true);
     }
   }, [fetchNotifications, hasMore]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [handleWindowScroll]);
+
 
   // mark all as read
   const markAllAsRead = async () => {
