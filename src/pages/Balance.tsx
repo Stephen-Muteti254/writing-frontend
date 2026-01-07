@@ -12,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 import {
   ArrowUpRight,
@@ -99,15 +98,17 @@ export default function Balance() {
   };
 
 
-  function parseISOToDate(iso: string) {
-    if (!iso) return new Date(NaN);
-    // Split at '.' to separate seconds from fractional part
-    const [datePart, fracAndZone] = iso.split(".");
-    if (!fracAndZone) return new Date(iso); // no fractional seconds
+  function parseISOToDate(iso?: string) {
+    if (!iso) return null;
 
-    // Take only first 3 digits of fractional seconds
-    const millis = fracAndZone.slice(0, 3);
-    return new Date(`${datePart}.${millis}Z`);
+    let normalized = iso
+      // remove trailing Z if an offset already exists
+      .replace(/([+-]\d{2}:\d{2})Z$/, "$1")
+      // trim microseconds → milliseconds
+      .replace(/(\.\d{3})\d+/, "$1");
+
+    const d = new Date(normalized);
+    return isNaN(d.getTime()) ? null : d;
   }
 
 
@@ -163,7 +164,7 @@ export default function Balance() {
           },
         });
 
-        console.log(res);
+        console.log(res.data.transactions);
 
         const { list, hasMore } = extractList(res, "transactions");
 
@@ -190,6 +191,8 @@ export default function Balance() {
       const res = await api.get("/withdrawals", {
         params: { page: pageNum, limit: LIMIT },
       });
+
+      console.log(res.data.withdrawals);
 
       const { list, hasMore } = extractList(res, "withdrawals");
 
@@ -514,8 +517,10 @@ export default function Balance() {
                             <p className="text-sm text-muted-foreground mt-1">{t.description}</p>
                             <p className="text-xs text-muted-foreground mt-2 flex items-center">
                               <Calendar className="h-3 w-3 mr-1" />
-                              {/*{new Date(t.created_at).toLocaleString()}*/}
-                              {parseISOToDate(t.created_at).toLocaleString()}
+                              {(() => {
+                                const d = parseISOToDate(t.created_at);
+                                return d ? d.toLocaleString() : "—";
+                              })()}
                             </p>
                           </div>
 
@@ -546,7 +551,10 @@ export default function Balance() {
                       <div>
                         <p className="font-medium">Withdrawal</p>
                         <p className="text-sm text-muted-foreground">
-                          {parseISOToDate(w.created_at).toLocaleString()}
+                          {(() => {
+                            const d = parseISOToDate(w.processed_at ?? w.requested_at);
+                            return d ? d.toLocaleString() : "—";
+                          })()}
                         </p>
                       </div>
                       <div className="text-right">

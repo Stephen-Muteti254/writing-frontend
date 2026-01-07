@@ -48,10 +48,16 @@ export default function Chats() {
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const scrollAreaRef = useRef(null);
+  const scrollAreaRef = useRef<any>(null);
 
   const { user } = useAuth();
   const currentUserId = user?.id;
+
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const [localChats, setLocalChats] = useState<Chat[]>([]);
 
   /**Auto scroll to the last message in a chat**/
   /* ---------- robust auto-scroll to last message ---------- */
@@ -67,22 +73,38 @@ export default function Chats() {
 
   /** STEP 1: Create chat if ?order & ?writer exist */
   /* ---------- instrumented loadChats ---------- */
-  const loadChats = useCallback(async () => {
-    setLoadingChats(true);
+  const loadChats = useCallback(async (pageToLoad = 1) => {
+    if (!hasMore && pageToLoad !== 1) return;
+
+    if (pageToLoad === 1) setLoadingChats(true);
+    else setLoadingMore(true);
+
     try {
-      const res = await api.get("/chats");
-      console.log("DEBUG loadChats response:", res?.data);
-      const list = res?.data?.chats || [];
-      console.log("DEBUG resolving list.length =", list.length);
-      setChats(list);
-      return list;
+      const res = await api.get("/chats", { params: { page: pageToLoad, limit: 10 } });
+      const newChats = res.data.chats || [];
+      setLocalChats(prev => pageToLoad === 1 ? newChats : [...prev, ...newChats]);
+      // setChats(prev => pageToLoad === 1 ? newChats : [...prev, ...newChats]);
+      setHasMore(res.data.has_more);
+      setPage(pageToLoad);
     } catch (err) {
-      console.error("DEBUG loadChats error:", err);
-      throw err;
+      console.error("Failed to load chats", err);
     } finally {
-      setLoadingChats(false);
+      if (pageToLoad === 1) setLoadingChats(false);
+      else setLoadingMore(false);
     }
-  }, [setChats]);
+  }, [hasMore, setLocalChats]);
+
+  // Initial load
+  useEffect(() => { loadChats(1); }, []);
+
+  // Infinite scroll handler
+  const handleScroll = () => {
+    const viewport = scrollAreaRef.current?.getElement?.();
+    if (!viewport) return;
+    if (viewport.scrollHeight - viewport.scrollTop <= viewport.clientHeight + 50 && hasMore && !loadingMore) {
+      loadChats(page + 1);
+    }
+  };
 
   /* ---------- instrumented createChatIfNeeded ---------- */
   const createChatIfNeeded = useCallback(async () => {
@@ -133,13 +155,13 @@ export default function Chats() {
       console.log("DEBUG mark-read response:", markRes?.data);
 
       // optimistic local update of chat unread_count to 0
-      setChats(prev => prev.map(c => c.id === chatId ? { ...c, unread_count: 0, last_message: c.last_message } : c));
+      setLocalChats(prev => prev.map(c => c.id === chatId ? { ...c, unread_count: 0, last_message: c.last_message } : c));
     } catch (err) {
       console.error("DEBUG Error loading messages:", err);
     } finally {
       setLoadingMessages(false);
     }
-  }, [setChats]);
+  }, [setLocalChats]);
 
 
   /** INITIAL LOAD:
@@ -188,10 +210,6 @@ export default function Chats() {
     setSelectedChatId(chatId);
     fetchMessages(chatId);
   };
-
-  useEffect(() => {
-    console.log("Chats in context:", chats);
-  }, [chats]);
 
   /** Delete Message */
   const handleDeleteMessage = async (messageId: string) => {
@@ -333,13 +351,13 @@ export default function Chats() {
           <CardTitle className="text-2xl">Chats</CardTitle>
         </CardHeader>
 
-        {chats.some(c => c.warning?.active) && (
+        {localChats.some(c => c.warning?.active) && (
           <div className="p-3 bg-yellow-100 border border-yellow-300 text-yellow-900 rounded m-2 mb-0 mt-0 text-sm">
             Some chats require your attention due to policy warnings.
           </div>
         )}
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1" ref={scrollAreaRef} onScroll={handleScroll}>
           <div className="p-3 space-y-2">
             {loadingChats && (
               <div className="flex justify-center py-4">
@@ -347,7 +365,7 @@ export default function Chats() {
               </div>
             )}
 
-            {chats.map(chat => (
+            {localChats.map(chat => (
               <div
                 key={chat.id}
                 className={`p-3 rounded-lg cursor-pointer transition-colors ${
@@ -371,6 +389,14 @@ export default function Chats() {
                 </p>
               </div>
             ))}
+
+            {/* SHOW loadingMore indicator */}
+            {loadingMore && (
+              <div className="flex justify-center align-center py-2">
+                <Loader2 className="animate-spin h-4 w-4 text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading more chats...</span>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </Card>
