@@ -338,7 +338,7 @@ export default function Chats() {
   };
 
 
-  const selectedChat = chats.find(c => c.id === selectedChatId) || null;
+  const selectedChat = localChats.find(c => c.id === selectedChatId) || null;
   const messageGroups = groupMessagesByDate(messages);
 
 
