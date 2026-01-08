@@ -37,6 +37,7 @@ import ApplicationPending from "./pages/ApplicationPending";
 import ApplicationApproved from "./pages/ApplicationApproved";
 import WriterApplication from "./pages/WriterApplication";
 import EmailVerification from "./pages/EmailVerification";
+import EmailVerificationConfirm from "./pages/EmailVerificationConfirm";
 import WriterProfileCompletionLayout from "./pages/WriterProfileCompletionLayout";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -98,6 +99,7 @@ const App = () => (
 
                       {/* Email verification (public layout only) */}
                       <Route path="email-verification" element={<EmailVerification />} />
+                      <Route path="verify-email" element={<EmailVerificationConfirm />} />
 
                       {/* ===== Writer Onboarding (auth + public layout) ===== */}
                       <Route

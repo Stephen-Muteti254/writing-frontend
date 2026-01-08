@@ -83,21 +83,11 @@ const ApplicationApproved = () => {
               </p>
             </div>
 
-            {/*<div className="flex flex-col gap-2">
-              <Button
-                className="w-full"
-                onClick={() => triggerSupportChat()}
-              >
-                <Mail className="mr-2 h-4 w-4" />
-                Contact Support
-              </Button>
-            </div>*/}
-
             <div className="text-center">
               <p className="text-xs text-muted-foreground">
                 Questions? Email us at{" "}
                 <a href="mailto:support@academichub.com" className="text-primary hover:underline">
-                  support@academichub.com
+                  support@academichubpro.com
                 </a>
               </p>
             </div>
