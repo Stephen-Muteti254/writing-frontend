@@ -30,6 +30,8 @@ export default function Chats() {
 
   const otherUserParam = writerParam || clientParam;
 
+  const hasDeepLink = orderParam && otherUserParam;
+
   const { chats, setChats, refreshChats } = useChatContext();
 
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
@@ -58,6 +60,22 @@ export default function Chats() {
   const [loadingMore, setLoadingMore] = useState(false);
 
   const [localChats, setLocalChats] = useState<Chat[]>([]);
+
+  const resolveChatFromUrl = useCallback(async () => {
+    if (!orderParam || !otherUserParam) return null;
+
+    const payload: any = { order_id: orderParam };
+
+    if (user?.role === "client") {
+      payload.writer_id = otherUserParam;
+    } else {
+      payload.client_id = otherUserParam;
+    }
+
+    const res = await api.post("/chats", payload);
+    return res.data.chat.id;
+  }, [orderParam, otherUserParam, user]);
+
 
   /**Auto scroll to the last message in a chat**/
   /* ---------- robust auto-scroll to last message ---------- */
@@ -202,6 +220,42 @@ export default function Chats() {
 
     return () => { cancelled = true; };
   }, [orderParam, otherUserParam]);
+
+
+  const ensureChatVisible = async (chatId: string) => {
+    const exists = localChats.some(c => c.id === chatId);
+    if (exists) return;
+
+    // Fetch single chat by ID (new endpoint OR reuse existing)
+    const res = await api.get(`/chats/${chatId}`);
+    setLocalChats(prev => [res.data.chat, ...prev]);
+  };
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (!orderParam || !otherUserParam) {
+        loadChats(1);
+        return;
+      }
+
+      // 1. Resolve chat ID
+      const chatId = await resolveChatFromUrl();
+      if (!chatId || cancelled) return;
+
+      // 2. Select & load messages
+      setSelectedChatId(chatId);
+      await fetchMessages(chatId);
+
+      // 3. Ensure chat appears in list
+      ensureChatVisible(chatId);
+    })();
+
+    return () => { cancelled = true; };
+  }, [orderParam, otherUserParam]);
+
 
 
 
@@ -373,16 +427,32 @@ export default function Chats() {
                 }`}
                 onClick={() => handleSelectChat(chat.id)}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <p className="font-medium">{chat.order_id}</p>
+                <div className="flex flex-col items-start mb-1 gap-1">
+                  {/* TITLE (own row, left-aligned) */}
+                  <p className="font-medium text-sm line-clamp-2 leading-snug text-left">
+                    {chat.order_title || "Untitled order"}
+                  </p>
 
-                  {chat.unread_count > 0 && (
-                    <Badge variant="destructive">{chat.unread_count}</Badge>
-                  )}
-                {chat.warning?.active && (
-                  <Badge variant="destructive">Warning</Badge>
-                )}
+                  {/* ID + BADGES (row, left-aligned) */}
+                  <div className="flex items-center gap-2 text-left">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      {chat.order_id}
+                    </p>
+
+                    {chat.unread_count > 0 && (
+                      <Badge variant="destructive" className="h-5 px-2">
+                        {chat.unread_count}
+                      </Badge>
+                    )}
+
+                    {chat.warning?.active && (
+                      <Badge variant="destructive" className="h-5 px-2">
+                        Warning
+                      </Badge>
+                    )}
+                  </div>
                 </div>
+
 
                 <p className="text-xs opacity-80">
                   {chat.last_message?.content || "No messages yet"}
