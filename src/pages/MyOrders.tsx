@@ -14,7 +14,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Filter, Loader2 } from "lucide-react";
 import { OrdersTable } from "@/components/OrdersTable";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import api from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 
@@ -29,17 +28,11 @@ export default function MyOrders() {
   const [dateTo, setDateTo] = useState("");
 
   const [orders, setOrders] = useState<any[]>([]);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const scrollRef = useRef<{
-    getElement: () => HTMLDivElement | null;
-    scrollTop: () => number;
-    scrollHeight: () => number;
-    clientHeight: () => number;
-  }>(null);
+  const nextPageRef = useRef(1);
 
   const loadingRef = useRef(false);
 
@@ -92,7 +85,7 @@ export default function MyOrders() {
         const newOrders = res.data?.orders || [];
         setOrders(prev => (reset ? newOrders : [...prev, ...newOrders]));
         setHasMore(newOrders.length > 0);
-        setPage(p);
+        nextPageRef.current = p + 1;
       } catch (err) {
         console.error(err);
       } finally {
@@ -104,23 +97,31 @@ export default function MyOrders() {
     [backendStatus, searchOrderId, dateFrom, dateTo]
   );
 
-  /** Reset orders on filter/tab change */
   useEffect(() => {
+    nextPageRef.current = 1;
+    setHasMore(true);
     loadOrders(1, true);
   }, [backendStatus, searchOrderId, dateFrom, dateTo, loadOrders]);
 
-  /** Infinite scroll */
-  const handleScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el || loadingRef.current) return;
 
-    const atBottom =
-      el.scrollHeight() - el.scrollTop() - el.clientHeight() < 120;
+  const handleWindowScroll = useCallback(() => {
+    if (loadingRef.current || !hasMore) return;
 
-    if (!atBottom || !hasMore) return;
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
 
-    loadOrders(page + 1);
-  }, [hasMore, page, loadOrders]);
+    if (scrollTop + windowHeight >= documentHeight - 200) {
+      loadOrders(nextPageRef.current);
+    }
+  }, [hasMore, loadOrders]);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [handleWindowScroll]);
+
+
 
   return (
     <div className="space-y-2">
@@ -229,7 +230,6 @@ export default function MyOrders() {
                     className="p-0 h-4 w-4 ml-1"
                     onClick={() => {
                       setSearchOrderId("");
-                      loadOrders(1, true);
                     }}
                   >
                     ×
@@ -246,7 +246,6 @@ export default function MyOrders() {
                     className="p-0 h-4 w-4 ml-1"
                     onClick={() => {
                       setDateFrom("");
-                      loadOrders(1, true);
                     }}
                   >
                     ×
@@ -263,7 +262,6 @@ export default function MyOrders() {
                     className="p-0 h-4 w-4 ml-1"
                     onClick={() => {
                       setDateTo("");
-                      loadOrders(1, true);
                     }}
                   >
                     ×
@@ -280,7 +278,6 @@ export default function MyOrders() {
                   setSearchOrderId("");
                   setDateFrom("");
                   setDateTo("");
-                  loadOrders(1, true);
                 }}
               >
                 Clear All
