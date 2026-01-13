@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { PenTool } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import api from "@/lib/api";
+import { Helmet } from "react-helmet-async";
 
 const RegisterWriter = () => {
   const navigate = useNavigate();
@@ -116,6 +117,15 @@ const RegisterWriter = () => {
   };
 
   return (
+    <>
+    <Helmet>
+      <title>Become an Academic Writer | Writer Registration – Academic Hub</title>
+      <meta
+        name="description"
+        content="Apply to become an academic writer on Academic Hub. Work on academic orders, earn securely, and grow your writing career."
+      />
+      <meta name="robots" content="index, follow" />
+    </Helmet>
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4 text-center">
@@ -190,6 +200,7 @@ const RegisterWriter = () => {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 };
 

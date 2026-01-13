@@ -1,5 +1,16 @@
+import { Helmet } from "react-helmet-async";
+
 const Terms = () => {
   return (
+    <>
+    <Helmet>
+      <title>Terms & Conditions | Academic Hub Services</title>
+      <meta
+        name="description"
+        content="Review the terms and conditions governing the use of Academic Hub’s academic writing and research services."
+      />
+      <meta name="robots" content="index, follow" />
+    </Helmet>
     <div className="py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl font-bold mb-8">Terms & Conditions</h1>
@@ -118,13 +129,14 @@ const Terms = () => {
               For questions about these terms, contact us at:
             </p>
             <p>
-              Email: legal@academichub.com<br />
+              Email: support@academichubpro.com<br />
               Address: 123 Academic Street, New York, NY 10001
             </p>
           </section>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

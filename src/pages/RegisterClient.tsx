@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CountrySelect } from "@/components/CountrySelect";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { Helmet } from "react-helmet-async";
 
 const RegisterClient = () => {
   const navigate = useNavigate();
@@ -127,6 +128,15 @@ const RegisterClient = () => {
   };
 
   return (
+    <>
+    <Helmet>
+      <title>Hire Expert Academic Writers | Client Registration – Academic Hub</title>
+      <meta
+        name="description"
+        content="Register as a client on Academic Hub to hire verified academic writers for essays, research papers, theses, and dissertations."
+      />
+      <meta name="robots" content="index, follow" />
+    </Helmet>
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <Card className="w-full max-w-2xl">
         <CardHeader className="space-y-4">
@@ -266,6 +276,7 @@ const RegisterClient = () => {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 };
 

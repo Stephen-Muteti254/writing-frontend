@@ -62,6 +62,7 @@ import ClientWallet from "./pages/client/ClientWallet";
 import RateWriter from "./pages/client/RateWriter";
 import { ProfileCompletionProvider } from "@/contexts/ProfileCompletionContext";
 import ProfileCompletionController from "@/components/profile/ProfileCompletionController";
+import { HelmetProvider } from "react-helmet-async";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <HelmetProvider>
         <BrowserRouter>
           <AuthProvider>
             <ProfileProvider>
@@ -273,6 +275,7 @@ const App = () => (
             </ProfileProvider>
           </AuthProvider>
         </BrowserRouter>
+      </HelmetProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

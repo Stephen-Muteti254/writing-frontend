@@ -33,6 +33,8 @@ const SUBDIRECTORIES = [
   { slug: "rate", label: "Rate Writer", icon: Star, completedOnly: true },
 ];
 
+const MAX_CONTENT_WIDTH = "180px";
+
 export function FileExplorerItem({ 
   order, 
   onCancel, 
@@ -107,7 +109,10 @@ export function FileExplorerItem({
         </button>
 
         {/* Order Info */}
-        <div className="flex-1 min-w-0">
+        <div 
+          className="flex-1 min-w-0 overflow-hidden"
+          style={{ maxWidth: MAX_CONTENT_WIDTH }}
+        >
           <p className="text-sm font-medium truncate text-foreground">
             {order.title}
           </p>
@@ -134,34 +139,13 @@ export function FileExplorerItem({
         <div className="ml-2 mt-1 mb-2 rounded-sm border border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
           {SUBDIRECTORIES
             .filter(subdir => {
-              // Only show "Rate Writer" for completed orders
-              if (subdir.completedOnly && !isCompleted) {
-                return false;
-              }
-
-              // Do not show "Edit Order" for cancelled or completed orders
-              if (subdir.slug === "edit" && order.writer_assigned) {
-                return false;
-              }
-
-              if (subdir.slug === "edit" && (order.status === "cancelled" || order.status === "completed")) {
-                return false;
-              }
-
+              if (subdir.completedOnly && !isCompleted) return false;
+              if (subdir.slug === "edit" && order.writer_assigned) return false;
+              if (subdir.slug === "edit" && (order.status === "cancelled" || order.status === "completed")) return false;
               return true;
             })
             .map((subdir) => {
               const Icon = subdir.icon;
-              const pathname = window.location.pathname;
-
-              const isActive =
-                pathname.includes(`/client/orders/${currentTab}/${order.id}`) &&
-                (
-                  subdir.slug === "view"
-                    ? pathname === `/client/orders/${currentTab}/${order.id}`
-                    : pathname.includes(`/${subdir.slug}`)
-                );
-
               const isRateItem = subdir.slug === "rate";
 
               return (
@@ -171,15 +155,14 @@ export function FileExplorerItem({
                   className={cn(
                     "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors",
                     "hover:bg-accent/50 border-b border-border/30 last:border-b-0",
-                    isActive && "bg-primary/10 text-primary font-medium",
-                    isRateItem && "text-rating hover:bg-rating/10"
+                    isRateItem && "text-amber-500 hover:bg-amber-500/10"
                   )}
                 >
                   <Icon className={cn(
                     "h-4 w-4 flex-shrink-0",
-                    isRateItem && "fill-rating/20"
+                    isRateItem && "fill-amber-500/20"
                   )} />
-                  <span>{subdir.label}</span>
+                  <span className="truncate" style={{ maxWidth: MAX_CONTENT_WIDTH }}>{subdir.label}</span>
                 </button>
               );
             })}

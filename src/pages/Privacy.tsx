@@ -1,5 +1,16 @@
+import { Helmet } from "react-helmet-async";
+
 const Privacy = () => {
   return (
+    <>
+    <Helmet>
+      <title>Privacy Policy | Academic Hub Academic Writing Platform</title>
+      <meta
+        name="description"
+        content="Read Academic Hub’s privacy policy explaining how we collect, use, and protect your personal data on our academic writing platform."
+      />
+      <meta name="robots" content="index, follow" />
+    </Helmet>
     <div className="py-12">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-4xl font-bold mb-8">Privacy Policy</h1>
@@ -91,13 +102,14 @@ const Privacy = () => {
               If you have questions about this privacy policy, please contact us at:
             </p>
             <p>
-              Email: privacy@academichub.com<br />
-              Address: 123 Academic Street, New York, NY 10001
+              Email: support@academichubpro.com<br />
+              Address: 575 5th Ave Fl 14, New York City, New York
             </p>
           </section>
         </div>
       </div>
     </div>
+    </>
   );
 };
 

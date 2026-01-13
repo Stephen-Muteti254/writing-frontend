@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Helmet } from "react-helmet-async";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -21,7 +22,6 @@ const Contact = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // TODO: Implement actual contact form submission
     setTimeout(() => {
       toast({
         title: "Message sent!",
@@ -33,6 +33,15 @@ const Contact = () => {
   };
 
   return (
+    <>
+    <Helmet>
+      <title>Contact Academic Hub | Academic Writing & Research Support</title>
+      <meta
+        name="description"
+        content="Contact Academic Hub for academic writing, research assistance, order support, or general inquiries. Our team is ready to help."
+      />
+      <meta name="robots" content="index, follow" />
+    </Helmet>
     <div className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
@@ -113,7 +122,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Email</h3>
-                      <p className="text-sm text-muted-foreground">support@academichub.com</p>
+                      <p className="text-sm text-muted-foreground">support@academichubpro.com</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -122,7 +131,7 @@ const Contact = () => {
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1">Phone</h3>
-                      <p className="text-sm text-muted-foreground">+1 (555) 123-4567</p>
+                      <p className="text-sm text-muted-foreground">24/7</p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-4">
@@ -132,8 +141,8 @@ const Contact = () => {
                     <div>
                       <h3 className="font-semibold mb-1">Office</h3>
                       <p className="text-sm text-muted-foreground">
-                        123 Academic Street<br />
-                        New York, NY 10001
+                        575 5th Ave Fl 14<br />
+                        New York City, New York
                       </p>
                     </div>
                   </div>
@@ -155,6 +164,7 @@ const Contact = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

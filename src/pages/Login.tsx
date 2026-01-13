@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import LightLogo from "@/assets/light-mini-logo.PNG";
 import DarkLogo from "@/assets/dark-mini-logo.PNG";
 import { Eye, EyeOff } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 type Step = "credentials" | "otp";
 
@@ -112,6 +113,15 @@ const Login = () => {
   };
 
   return (
+    <>
+    <Helmet>
+      <title>Login | Academic Hub Secure Access</title>
+      <meta
+        name="description"
+        content="Secure login for Academic Hub clients and writers to access orders, messages, and account settings."
+      />
+      <meta name="robots" content="index, follow" />
+    </Helmet>
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4 text-center">
@@ -225,6 +235,7 @@ const Login = () => {
         </CardContent>
       </Card>
     </div>
+    </>
   );
 };
 

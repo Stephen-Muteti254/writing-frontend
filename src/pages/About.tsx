@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Target, Award, Shield } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 const About = () => {
   const values = [
@@ -26,6 +27,15 @@ const About = () => {
   ];
 
   return (
+    <>
+    <Helmet>
+      <title>About Academic Hub | Professional Academic Writing Platform</title>
+      <meta
+        name="description"
+        content="Learn about Academic Hub, our mission, and our commitment to providing reliable academic writing and research support to students worldwide."
+      />
+      <meta name="robots" content="index, follow" />
+    </Helmet>
     <div className="py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Section */}
@@ -100,6 +110,7 @@ const About = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

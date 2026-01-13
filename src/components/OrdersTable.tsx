@@ -56,20 +56,23 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     const deadline = new Date(deadlineIso);
     const now = new Date();
 
-    const diffMs = deadline.getTime() - now.getTime();
-
     if (isNaN(deadline.getTime())) return "Invalid deadline";
-    if (diffMs <= 0) return "Expired";
+
+    let diffMs = deadline.getTime() - now.getTime();
+
+    const isOverdue = diffMs < 0;
+    diffMs = Math.abs(diffMs);
 
     const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
     const days = Math.floor(totalHours / 24);
     const hours = totalHours % 24;
 
-    if (days > 0) {
-      return `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""} left`;
-    }
+    const timeLabel =
+      days > 0
+        ? `${days} day${days !== 1 ? "s" : ""} ${hours} hour${hours !== 1 ? "s" : ""}`
+        : `${hours} hour${hours !== 1 ? "s" : ""}`;
 
-    return `${hours} hour${hours !== 1 ? "s" : ""} left`;
+    return isOverdue ? `Overdue by ${timeLabel}` : `${timeLabel} left`;
   }
 
 
@@ -77,6 +80,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
     const diffMs = new Date(deadlineIso).getTime() - Date.now();
     const hoursLeft = diffMs / (1000 * 60 * 60);
 
+    if (hoursLeft < 0) return "text-red-700 font-semibold";
     if (hoursLeft <= 6) return "text-red-600";
     if (hoursLeft <= 24) return "text-orange-600";
     return "text-amber-600";
@@ -138,7 +142,7 @@ export function OrdersTable({ orders }: OrdersTableProps) {
               <div
                 className={`flex items-center text-sm ${deadlineClass(order.deadline)}`}
               >
-                <Calendar className="h-4 w-4 mr-1" />
+                {/*<Calendar className="h-4 w-4 mr-1" />*/}
                 {formatDeadlineRemaining(order.deadline)}
               </div>
             </TableCell>

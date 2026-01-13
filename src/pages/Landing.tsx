@@ -11,6 +11,7 @@ import {
   Star,
   Award
 } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 const Landing = () => {
   const features = [
@@ -60,6 +61,48 @@ const Landing = () => {
   ];
 
   return (
+    <>
+    <Helmet>
+      <title>
+        Academic Hub | Trusted Academic Writing, Research & Editing Services
+      </title>
+
+      <meta
+        name="description"
+        content="Hire expert academic writers for essays, research papers, theses, and dissertations. Secure payments, plagiarism-free work, and on-time delivery."
+      />
+
+      <meta name="robots" content="index, follow" />
+
+      {/* Open Graph */}
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="Academic Hub" />
+      <meta
+        property="og:title"
+        content="Academic Hub | Trusted Academic Writing & Research Services"
+      />
+      <meta
+        property="og:description"
+        content="Professional academic writing services for essays, research papers, theses, and dissertations. Trusted by students worldwide."
+      />
+      <meta property="og:url" content="https://academichubpro.com/" />
+      <meta property="og:image" content="https://academichubpro.com/og-image.jpg" />
+
+      {/* Twitter */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta
+        name="twitter:title"
+        content="Academic Hub | Trusted Academic Writing Services"
+      />
+      <meta
+        name="twitter:description"
+        content="Hire expert academic writers. Secure, plagiarism-free, and on-time academic writing services."
+      />
+      <meta
+        name="twitter:image"
+        content="https://academichubpro.com/og-image.jpg"
+      />
+    </Helmet>
     <div className="min-h-screen">
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-secondary/5">
@@ -194,6 +237,7 @@ const Landing = () => {
         </div>
       </section>
     </div>
+    </>
   );
 };
 

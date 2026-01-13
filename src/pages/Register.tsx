@@ -3,6 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, User, PenTool } from "lucide-react";
+import { Helmet } from "react-helmet-async";
+import LightLogo from "@/assets/light-mini-logo.PNG";
+import DarkLogo from "@/assets/dark-mini-logo.PNG";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -18,12 +21,30 @@ const Register = () => {
   };
 
   return (
+    <>
+    <Helmet>
+      <title>Create an Account | Academic Hub Academic Writing Platform</title>
+      <meta
+        name="description"
+        content="Join Academic Hub as a client or writer. Hire expert academic writers or earn money completing academic projects."
+      />
+      <meta name="robots" content="index, follow" />
+    </Helmet>
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <div className="bg-primary/10 p-3 rounded-lg">
-              <FileText className="h-10 w-10 text-primary" />
+              <img
+                src={LightLogo}
+                alt="AcademicHub"
+                className="h-16 block dark:hidden"
+              />
+              <img
+                src={DarkLogo}
+                alt="AcademicHub"
+                className="h-16 hidden dark:block"
+              />
             </div>
           </div>
           <h1 className="text-3xl font-bold mb-2">Join AcademicHub</h1>
@@ -128,6 +149,7 @@ const Register = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
