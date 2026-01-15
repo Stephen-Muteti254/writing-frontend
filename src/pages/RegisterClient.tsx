@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FileText } from "lucide-react";
+import { FileText, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CountrySelect } from "@/components/CountrySelect";
 import { api } from "@/lib/api";
@@ -142,7 +142,7 @@ const RegisterClient = () => {
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
             <div className="bg-primary/10 p-3 rounded-lg">
-              <FileText className="h-8 w-8 text-primary" />
+              <User className="h-8 w-8 text-primary" />
             </div>
           </div>
           <CardTitle className="text-2xl text-center">
