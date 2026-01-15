@@ -54,6 +54,7 @@ export default function AdminNotifications() {
   const [message, setMessage] = useState("");
   const [type, setType] = useState<"info" | "warning" | "success" | "urgent">("info");
   const [recipients, setRecipients] = useState<"all" | "clients" | "writers">("all");
+  const [senderTeam, setSenderTeam] = useState("Support Team");
 
   const fetchNotifications = async () => {
     setLoading(true);
@@ -102,6 +103,7 @@ export default function AdminNotifications() {
         message,
         type,
         recipients,
+        sender_team: senderTeam,
         user_email: recipients === "user" ? userEmail : undefined,
       });
 
@@ -244,7 +246,23 @@ export default function AdminNotifications() {
                         <SelectItem value="user">Specific User</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+                  </div>                
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sender_team">Sender Team</Label>
+                  <Select value={senderTeam} onValueChange={setSenderTeam}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select sender team" />
+                    </SelectTrigger>
+
+                    <SelectContent position="popper">
+                      <SelectItem value="Editorial Team">Editorial Team</SelectItem>
+                      <SelectItem value="HR Team">HR Team</SelectItem>
+                      <SelectItem value="Technical Team">Technical Team</SelectItem>
+                      <SelectItem value="Support Team">Support Team</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {recipients === "user" && (
@@ -258,6 +276,7 @@ export default function AdminNotifications() {
                     />
                   </div>
                 )}
+
 
                 <Separator />
 
