@@ -119,17 +119,17 @@ export function WriterProfile({ isOpen, onOpenChange }: WriterProfileProps = {})
           <DialogTitle className="flex items-center justify-between">
             Writer Profile
             {/* Show Edit button only if profile is complete and not loading */}
-            {!loading && profileCompletion?.is_complete && (
-              // <Button
-              //   variant={isEditing ? "default" : "outline"}
-              //   size="sm"
-              //   disabled={true}
-              //   onClick={() => openWizard()}
-              // >
-              //   <Edit className="h-4 w-4 mr-2" />
-              //   Edit Profile
-              // </Button>
-            )}
+            {/*{!loading && profileCompletion?.is_complete && (
+              <Button
+                variant={isEditing ? "default" : "outline"}
+                size="sm"
+                disabled={true}
+                onClick={() => openWizard()}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+            )}*/}
           </DialogTitle>
         </DialogHeader>
 
