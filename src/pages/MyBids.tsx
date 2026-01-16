@@ -41,15 +41,8 @@ export default function MyBids() {
   const { tab = "open" } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const scrollRef = useRef<{
-    getElement: () => HTMLDivElement | null;
-    scrollTop: () => number;
-    scrollHeight: () => number;
-    clientHeight: () => number;
-  }>(null);
 
   const [bids, setBids] = useState<Bid[]>([]);
-  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -135,22 +128,29 @@ export default function MyBids() {
   // Load first page when tab/filter changes
   useEffect(() => {
     setBids([]);
-    setPage(1);
+    nextPageRef.current = 1;
     fetchBids(true, 1);
   }, [tab, dateFrom, dateTo]);
 
-  // Infinite scroll handler
-  const handleScroll = useCallback(() => {
+
+  const handleWindowScroll = useCallback(() => {
     if (loadingRef.current || !hasMore) return;
 
-    const el = scrollRef.current?.getElement();
-    if (!el) return;
+    const scrollTop = window.scrollY;
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
 
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    if (nearBottom) {
+    if (scrollTop + windowHeight >= documentHeight - 200) {
       fetchBids(false, nextPageRef.current);
     }
   }, [hasMore]);
+
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleWindowScroll);
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, [handleWindowScroll]);
+
 
   return (
     <div className="space-y-2">

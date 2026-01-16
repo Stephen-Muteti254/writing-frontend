@@ -390,7 +390,7 @@ export default function Chats() {
                 </div>
 
 
-                <p className="text-xs opacity-80">
+                <p className="text-xs opacity-80 line-clamp-1">
                   {chat.last_message?.content || "No messages yet"}
                 </p>
               </div>
