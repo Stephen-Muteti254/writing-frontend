@@ -122,7 +122,7 @@ export function FileExplorerItem({
         </div>
 
         {/* Cancel Button (on hover) */}
-        {canCancel && (
+        {canCancel && setIsHovered && (
           <Button
             size="icon"
             aria-label="Cancel"

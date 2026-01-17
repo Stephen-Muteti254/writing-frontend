@@ -9,7 +9,7 @@ import {
   DepositResponse 
 } from '@/types/wallet';
 import { useToast } from '@/hooks/use-toast';
-import PaystackInline from "@paystack/inline-js";
+import PaystackPop from "@paystack/inline-js";
 
 interface WalletData {
   balance: WalletBalance;
@@ -96,34 +96,12 @@ export function useWallet() {
         amount,
         callback_url: `${window.location.origin}/client/wallet?deposit=success`,
       });
-      return response;
+      console.log("PAYSTACK INIT RESPONSE:", response.data);
+      return response.data;
     },
     onSuccess: (data: DepositResponse) => {
-      const paystack = new PaystackInline({
-        key: data.public_key,
-      });
-
-      paystack.open({
-        email: data.email,
-        amount: data.amount,
-        currency: data.currency,
-        ref: data.reference,
-        metadata: data.metadata,
-      });
-
-      // register callbacks AFTER opening
-      paystack.onSuccess((response: any) => {
-        window.location.href =
-          `${window.location.pathname}?deposit=success&reference=${response.reference}`;
-      });
-
-      paystack.onCancel(() => {
-        toast({
-          title: "Payment cancelled",
-          description: "You closed the payment popup",
-          variant: "destructive",
-        });
-      });
+      console.log("url = ", data.authorization_url);
+      window.location.href = data.authorization_url;
     },
     onError: (error: Error) => {
       toast({

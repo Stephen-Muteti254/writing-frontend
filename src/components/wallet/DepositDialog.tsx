@@ -93,7 +93,7 @@ export function DepositDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
+            {/*<CreditCard className="h-5 w-5 text-primary" />*/}
             Deposit Funds
           </DialogTitle>
           <DialogDescription>
@@ -143,7 +143,7 @@ export function DepositDialog({
           {/* Error Message */}
           {error && (
             <Alert variant="destructive" className="py-2">
-              <AlertCircle className="h-4 w-4" />
+              {/*<AlertCircle className="h-4 w-4" />*/}
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
