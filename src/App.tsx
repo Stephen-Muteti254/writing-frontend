@@ -34,6 +34,7 @@ import ClientBids from "./pages/client/ClientBids";
 import RegisterClient from "./pages/RegisterClient";
 import RegisterWriter from "./pages/RegisterWriter";
 import ApplicationPending from "./pages/ApplicationPending";
+import ApplicationRejected from "./pages/ApplicationRejected";
 import ApplicationApproved from "./pages/ApplicationApproved";
 import WriterApplication from "./pages/WriterApplication";
 import EmailVerification from "./pages/EmailVerification";
@@ -113,6 +114,7 @@ const App = () => (
                             <Route path="apply" element={<WriterApplication />} />
                             <Route path="pending" element={<ApplicationPending />} />
                             <Route path="approved" element={<ApplicationApproved />} />
+                            <Route path="rejected" element={<ApplicationRejected />} />
                           </Route>
                         </Route>
                       </Route>

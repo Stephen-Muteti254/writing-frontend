@@ -6,7 +6,6 @@ const ApplicationStatusGuard = () => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
-  // Show full-page loader while auth/user data is loading
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -15,44 +14,55 @@ const ApplicationStatusGuard = () => {
     );
   }
 
-  // Not logged in → redirect to login
-  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
   const status = user.application_status;
+  const path = location.pathname;
 
-  // Writer has not applied → redirect to apply page
+  // Rejected → force rejected page
+  if (status === "rejected") {
+    if (!path.startsWith("/writer-onboarding/rejected")) {
+      return <Navigate to="/writer-onboarding/rejected" replace />;
+    }
+    return <Outlet />;
+  }
+
+  // Not applied
   if (
     status === "not_applied" &&
-    !location.pathname.startsWith("/writer-onboarding")
+    !path.startsWith("/writer-onboarding")
   ) {
     return <Navigate to="/writer-onboarding/apply" replace />;
   }
 
-  // Applied but not approved
+  // Applied, under review
   if (
     status === "applied" &&
-    !location.pathname.startsWith("/writer-onboarding")
+    !path.startsWith("/writer-onboarding")
   ) {
     return <Navigate to="/writer-onboarding/pending" replace />;
   }
 
-  // Approved but not activated
+  // Approved but awaiting activation fee
   if (
     status === "awaiting_initial_deposit" &&
-    !location.pathname.startsWith("/writer-onboarding")
+    !path.startsWith("/writer-onboarding")
   ) {
     return <Navigate to="/writer-onboarding/approved" replace />;
   }
 
-  // Fully active → ONLY block onboarding
+  // Fully active writer → block onboarding entirely
   if (
     status === "paid_initial_deposit" &&
-    location.pathname.startsWith("/writer-onboarding")
+    path.startsWith("/writer-onboarding")
   ) {
     return <Navigate to="/writer/orders/in-progress/all" replace />;
   }
 
   return <Outlet />;
 };
+
 
 export default ApplicationStatusGuard;
